@@ -1,6 +1,8 @@
 # CBT-Diary
 AI 프롬프트를 활용한 감정분석(CBT) 다이어리
 
+# API
+[API 문서](https://cbt-diary-team.github.io/CBT-Diary/index.html)
 
 ## `git commit 규칙`
 
