@@ -1,8 +1,0 @@
-<Appenders>
-    <File name="File" fileName="app.log" immediateFlush="false" append="true">
-        <PatternLayout>
-            <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Pattern>
-            <Charset>UTF-8</Charset> <!-- encoding 을 UTF-8로 설정 -->
-        </PatternLayout>
-    </File>
-</Appenders>
