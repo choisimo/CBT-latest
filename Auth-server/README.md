@@ -17,9 +17,21 @@ This project implements an authentication and authorization server using Spring 
 
 Detailed setup and running instructions can be found in the `backend/docs/Setup_and_Run.md` file.
 
-## API Documentation
+## Documentation
 
-Comprehensive API documentation is available via Swagger UI once the application is running, and also in `backend/docs/API_Documentation.md`.
+This project provides comprehensive documentation covering various aspects of the Auth-Server. Below are the key documentation sections:
+
+*   **API Documentation**: Detailed specifications for all REST API endpoints, including request/response formats and authentication requirements.
+    *   [View API Documentation](backend/docs/API_Documentation.md)
+
+*   **Data Models**: Information on the core data models and entities used throughout the application, including their fields and relationships.
+    *   [View Data Models](backend/docs/Data_Models_Entities.md)
+
+*   **Dynamic Filter Management**: Explanation of the dynamic filter system, allowing runtime configuration of security filters without redeployment.
+    *   [View Filter Management Documentation](backend/docs/Filter_Management.md)
+
+*   **Security Overview**: A deep dive into the security architecture, covering JWT-based authentication, authorization flows, and key security components.
+    *   [View Security Overview](backend/docs/Security_Overview.md)
 
 ## Project Structure
 
