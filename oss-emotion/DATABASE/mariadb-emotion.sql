@@ -1,102 +1,120 @@
-CREATE TABLE Users (                        -- @TODO check: 예약어 충돌 방지를 위해 User->Users 로 변경
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    user_name VARCHAR(30) NOT NULL, -- used as nickname
-    user_role enum('USER','ADMIN') NOT NULL DEFAULT 'USER',
-    is_premium BOOLEAN DEFAULT FALSE,
-    last_login TIMESTAMP DEFAULT NULL,
-    is_active enum('active','waiting','blocked','suspend','delete') NOT NULL DEFAULT 'waiting');
+-- =================================================================================
+-- Table: Users
+-- Description: 애플리케이션 사용자 정보를 저장합니다.
+-- =================================================================================
+CREATE TABLE Users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '사용자 고유 ID',
+    email VARCHAR(255) NOT NULL UNIQUE COMMENT '이메일 주소 (로그인 시 사용될 수 있음)',
+    password VARCHAR(255) NOT NULL COMMENT '해시된 비밀번호',
+    user_name VARCHAR(50) NOT NULL UNIQUE COMMENT '사용자 별명 또는 로그인 ID',
+    user_role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '사용자 권한 (예: USER, ADMIN)',
+    is_premium BOOLEAN NOT NULL DEFAULT FALSE COMMENT '프리미엄 계정 여부',
+    is_active VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '계정 활성 상태',
+    last_login TIMESTAMP NULL COMMENT '마지막 로그인 시간',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '계정 생성 시간',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 정보 수정 시간'
+) COMMENT '사용자 정보 테이블';
 
 
--- User 와 1:N 카디널리티 적용
--- Role : User has Diary (1:N)
--- @TODO 제약조건: 사용자가 일기 다 지우기 전까지 계정 탈퇴 못함
-CREATE TABLE Diary (
-    id BIGINT AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
-    title VARCHAR(255),
-    content TEXT NOT NULL,
-    alternative_thought TEXT,
-    PRIMARY KEY (id),                           -- @TODO 검토 필요 : indexing 설정하기
-    FOREIGN KEY (user_id) REFERENCES Users(id)
-        ON DELETE RESTRICT ON UPDATE CASCADE    -- @TODO 검토 필요 : 일기 지우기 전까지 탈퇴 불가능
-);
-
--- Diary 와 1:1 카디널리티 적용
-CREATE TABLE Diary_Answer (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    diary_id BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    emotion_detection TEXT, DEFAULT NULL, -- 감정 분석 결과
-    automatic_thought TEXT, DEFAULT NULL, -- 자동적 사고
-    prompt_for_change TEXT, DEFAULT NULL, -- 사고 전환을 위한 프롬프트
-    alternative_thought TEXT, DEFAULT NULL, -- 대안적 사고
-    status enum ('positive', 'negative', 'neutral') NOT NULL DEFAULT 'neutral',
-    FOREIGN KEY (diary_id) REFERENCES Diary(id)
-        ON DELETE CASCADE ON UPDATE CASCADE
-);
-
-
--- 기본 설정 템플릿 생성
--- @TODO 검토 필요
-CREATE TABLE Settings_option (
-    id INT AUTO_INCREMENT,
-    setting_key VARCHAR(50) NOT NULL UNIQUE,
-    default_value TEXT NOT NULL,
-    data_type ENUM('STRING', 'NUMBER', 'BOOLEAN', 'JSON') NOT NULL,
-    description VARCHAR(100),
-    is_user_editable BOOLEAN DEFAULT TRUE,
-    PRIMARY KEY (id)
-);
-
--- USER custom option -> 약성 개체 집합으로 의존성 부여
--- 유저 정보나 설정 정보 변경시 validation 제약
--- @TODO 검토 필요
-CREATE TABLE User_custom_setting (
-    user_id BIGINT NOT NULL,
-    setting_id INT NOT NULL,
-    override_value TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, setting_id),              -- @TODO 초기 로그인 때 토큰에 넣으면 될 듯 (user_id, setting_id)
-    FOREIGN KEY (user_id) REFERENCES Users(id)
-            ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (setting_id) REFERENCES Settings_option(id)
-            ON DELETE CASCADE ON UPDATE CASCADE
- );
-
-
--- 로그인 관련 --> 실질적으로는 중복 계정 필터링 역할로만 사용 예정
--- 인증 공급자 릴레이션
+-- =================================================================================
+-- Table: Auth_Provider
+-- Description: 시스템이 지원하는 인증 제공자(자체 서버, Google, Kakao 등) 목록을 저장합니다.
+-- =================================================================================
 CREATE TABLE Auth_Provider (
-    id INT AUTO_INCREMENT,
-    provider_name VARCHAR(50) NOT NULL DEFAULT 'SERVER',  -- @TODO 기본 제공자는 SERVER
-    description VARCHAR(255),
-    is_active BOOLEAN DEFAULT TRUE,
-    PRIMARY KEY (id)
-);
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '인증 제공자 고유 ID',
+    provider_name VARCHAR(50) NOT NULL UNIQUE COMMENT '인증 제공자 이름 (예: server, google)',
+    description VARCHAR(255) NULL COMMENT '인증 제공자 설명',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '활성화 여부'
+) COMMENT '인증 제공자 정보 테이블';
 
--- 사용자 인증 정보 릴레이션
+
+-- =================================================================================
+-- Table: User_Authentication
+-- Description: 사용자와 인증 제공자를 연결하고, 소셜 로그인 시 제공되는 고유 ID를 저장합니다.
+-- =================================================================================
 CREATE TABLE User_Authentication (
-    user_id BIGINT NOT NULL,
-    auth_provider_id INT NOT NULL,
-    social_id VARCHAR(255) NOT NULL, -- Provider 제공 고유 id, 로컬 서버시에는 UUID 값
-    email VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, auth_provider_id, social_id),
-    FOREIGN KEY (user_id) REFERENCES Users(id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (auth_provider_id) REFERENCES Auth_Provider(id)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
-    UNIQUE (auth_provider_id, social_id)
-);
+    user_id BIGINT NOT NULL COMMENT '사용자 ID (FK)',
+    auth_provider_id INT NOT NULL COMMENT '인증 제공자 ID (FK)',
+    social_id VARCHAR(255) NOT NULL COMMENT '인증 제공사에서 발급한 사용자의 고유 ID',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '인증 정보 연결 시간',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '인증 정보 수정 시간',
+    PRIMARY KEY (user_id, auth_provider_id),
+    UNIQUE (auth_provider_id, social_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (auth_provider_id) REFERENCES Auth_Provider(id) ON DELETE RESTRICT ON UPDATE CASCADE
+) COMMENT '사용자별 인증 수단 정보';
 
--- @ 인덱스 - start ---------------------------------------------------------------
 
--- @ 인덱스 - end ---------------------------------------------------------------
+-- =================================================================================
+-- Table: Settings_option
+-- Description: 애플리케이션의 모든 설정 항목에 대한 기본값을 정의합니다.
+-- =================================================================================
+CREATE TABLE Settings_option (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '설정 항목 고유 ID',
+    setting_key VARCHAR(100) NOT NULL UNIQUE COMMENT '설정 키 (예: notification.enabled)',
+    default_value VARCHAR(255) NOT NULL COMMENT '설정의 기본값',
+    data_type VARCHAR(20) NOT NULL COMMENT '데이터 타입 (예: BOOLEAN, STRING)',
+    description VARCHAR(255) NULL COMMENT '설정 항목에 대한 설명',
+    is_user_editable BOOLEAN NOT NULL DEFAULT TRUE COMMENT '사용자 수정 가능 여부'
+) COMMENT '기본 설정 옵션';
+
+
+-- =================================================================================
+-- Table: User_custom_setting
+-- Description: 사용자가 기본 설정을 변경한 경우, 해당 값을 저장합니다.
+-- =================================================================================
+CREATE TABLE User_custom_setting (
+    user_id BIGINT NOT NULL COMMENT '사용자 ID (FK)',
+    setting_id INT NOT NULL COMMENT '설정 항목 ID (FK)',
+    override_value VARCHAR(255) NOT NULL COMMENT '사용자가 덮어쓴 설정값',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '커스텀 설정 생성 시간',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '커스텀 설정 수정 시간',
+    PRIMARY KEY (user_id, setting_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (setting_id) REFERENCES Settings_option(id) ON DELETE CASCADE ON UPDATE CASCADE
+) COMMENT '사용자 커스텀 설정';
+
+
+-- =================================================================================
+-- Table: Diary
+-- Description: 사용자가 작성한 일기 데이터를 저장합니다.
+-- =================================================================================
+CREATE TABLE Diary (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '일기 고유 ID',
+    user_id BIGINT NOT NULL COMMENT '작성자 ID (FK)',
+    title VARCHAR(255) NULL COMMENT '일기 제목',
+    content TEXT NOT NULL COMMENT '일기 내용',
+    alternative_thought TEXT NULL COMMENT 'AI가 생성한 대안적 사고',
+    is_negative BOOLEAN DEFAULT FALSE COMMENT '부정적 감정 포함 여부',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '작성 시간',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 수정 시간',
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) COMMENT '일기 정보 테이블';
+
+
+-- =================================================================================
+-- Table: Report
+-- Description: 여러 일기를 바탕으로 생성된 종합 리포트 정보를 저장합니다.
+-- =================================================================================
+CREATE TABLE Report (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '리포트 고유 ID',
+    user_id BIGINT NOT NULL COMMENT '작성자 ID (FK)',
+    summary_title VARCHAR(255) NOT NULL COMMENT '리포트 요약 제목',
+    change_process TEXT NULL COMMENT '사고의 변화 과정',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '리포트 생성 시간',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '리포트 수정 시간',
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) COMMENT '종합 리포트';
+
+
+-- =================================================================================
+-- Table: Diary_Report_Link
+-- Description: 일기와 리포트의 다대다(N:M) 관계를 위한 연결 테이블입니다.
+-- =================================================================================
+CREATE TABLE Diary_Report_Link (
+    diary_id BIGINT NOT NULL COMMENT '일기 ID (FK)',
+    report_id BIGINT NOT NULL COMMENT '리포트 ID (FK)',
+    PRIMARY KEY (diary_id, report_id),
+    FOREIGN KEY (diary_id) REFERENCES Diary(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (report_id) REFERENCES Report(id) ON DELETE CASCADE ON UPDATE CASCADE
+) COMMENT '일기-리포트 연결 테이블';
