@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #dc3545;
+        }
+        p {
+            font-size: 16px;
+            color: #6c757d;
+        }
+        .status-code {
+            font-size: 18px;
+            color: #333;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>{{ statusCode }} 에러 페이지</h1>
+    <p>저런.. 무언가 잘못 된 것 같습니다.</p>
+    <div class="status-code">  에러 코드 : <strong>{{ statusCode }}</strong></div>
+</div>
+</body>
+</html>

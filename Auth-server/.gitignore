@@ -1,0 +1,74 @@
+HELP.md
+.gradle
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+concat.sh
+project_summary.sh
+project_summary
+find_stderr.log
+*.log
+file_concat
+concat
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+.windsurf
+*.windsurf
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+.windsurf
+/test
+
+### Windsurf ###
+.windsurfrules
+.windsurfrules.json
+.windsurfrules.lock
+.windsurfignore
+
+### security ###
+.authproxy
+.authproxy.lock
+
+### QueryDSL -- not exclude - include for git ###
+### @Description : QueryDSL generated sources : not exclude for git ###
+# Ignore all content in build
+build/*
+
+# But un-ignore specific subdirectories for QueryDSL
+!build/generated/
+!build/generated/sources/
+!build/generated/sources/annotationProcessor/
+!build/generated/sources/annotationProcessor/java/
+!build/generated/sources/annotationProcessor/java/main/
+!build/generated/sources/annotationProcessor/java/main/**
+!build/generated/sources/annotationProcessor/java/test/
+!build/generated/sources/annotationProcessor/java/test/**
+backend/build/libs/*.jar
