@@ -1,3 +1,5 @@
+# 기술 스택
+
 프론트엔드:
 ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -11,7 +13,6 @@
 인프라:
 ![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-000?style=for-the-badge&logo=apachekafka)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-
 
 데이터베이스:
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
@@ -29,21 +30,14 @@ AI/ML:
 ![ElasticSearch](https://img.shields.io/badge/-ElasticSearch-005571?style=for-the-badge&logo=elasticsearch)
 
 
-## memo
+## 메모
 
-openjdk-17-jdk: Spring Boot 애플리케이션 서버 실행 환경
-
-maven: Java 프로젝트 빌드 및 의존성 관리 도구
-
-nginx: API Gateway 및 로드 밸런서 역할을 수행
-
-mariaDB: 관계형 데이터베이스로 구조화된 데이터 저장
-
-mongodb: NoSQL 데이터베이스로 비구조화된 문서 데이터 저장
-
-redis: 인메모리 캐시 시스템으로 세션 관리 및 임시 데이터 저장
-
-kafka: 메시지 큐 시스템으로 비동기 통신 및 실시간 스트림 처리
-
-python3 & AI 라이브러리 & AI api : AI 분석 모듈 실행 환경
+- openjdk-17-jdk: Spring Boot 애플리케이션 서버 실행 환경
+- maven: Java 프로젝트 빌드 및 의존성 관리 도구
+- nginx: API Gateway 및 로드 밸런서 역할을 수행
+- mariaDB: 관계형 데이터베이스로 구조화된 데이터 저장
+- mongodb: NoSQL 데이터베이스로 비구조화된 문서 데이터 저장
+- redis: 인메모리 캐시 시스템으로 세션 관리 및 임시 데이터 저장
+- kafka: 메시지 큐 시스템으로 비동기 통신 및 실시간 스트림 처리
+- python3 & AI 라이브러리 & AI api : AI 분석 모듈 실행 환경
 
