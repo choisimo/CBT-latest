@@ -1,8 +1,14 @@
-# Compiled class file
+ Compiled class file
 **/*.class
 **/*.bin
 **/*.o
+**/*.xml
+**/*.keystore
 
+*.o
+*.xml
+*.keystore
+*.bin
 # Log file
 **/*.log
 
