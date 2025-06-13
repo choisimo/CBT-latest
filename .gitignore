@@ -5,6 +5,7 @@
 **/*.xml
 **/*.keystore
 
+*.lock
 *.o
 *.xml
 *.keystore
