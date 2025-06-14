@@ -231,7 +231,9 @@
 }</code></pre></td></tr>
                         <tr><td>응답 코드</td><td>200: 회원 가입 성공<br>400: 잘못된 요청<br>409: 충돌 (이미 존재하는 아이디/닉네임)<br>500: 서버 오류</td></tr>
                         <tr><td>응답 본문</td><td><pre><code>{
-  "message": "join successfully"
+  "status": "success",
+  "message": "회원가입이 성공적으로 완료되었습니다.",
+  "data": null
 }</code></pre></td></tr>
                     </table>
                 </article>
@@ -240,15 +242,17 @@
                     <table>
                         <tr><td>메소드</td><td><span class="badge badge-post">POST</span></td></tr>
                         <tr><td>엔드포인트</td><td><code>/api/auth/login</code></td></tr>
-                        <tr><td>설명</td><td>사용자 ID와 비밀번호로 로그인하고 JWT 토큰을 발급받습니다.</td></tr>
+                        <tr><td>설명</td><td>사용자 ID와 비밀번호로 로그인하고 JWT 토큰을 발급받습니다. (컨트롤러: <code>TokenController.java</code>)
+<p class="mt-2 text-sm text-orange-600"><em>참고: 현재 <code>TokenController.java</code>의 로그인 관련 로직은 실제 인증을 수행하지 않는 <strong>플레이스홀더</strong> 상태입니다. 실제 Spring Security <code>AuthenticationManager</code>를 사용한 인증 로직 구현이 필요합니다.</em></p>
+</td></tr>
                         <tr><td>요청 본문</td><td><pre><code>{
   "userId": "newUser123",
   "password": "password123!"
 }</code></pre></td></tr>
-                        <tr><td>응답 코드</td><td>200: 로그인 성공<br>400: 잘못된 요청<br>401: 로그인 실패</td></tr>
+                        <tr><td>응답 코드</td><td>200: 로그인 성공 (현재 플레이스홀더 기준)<br>400: 잘못된 요청<br>401: 로그인 실패 (현재 플레이스홀더 기준)</td></tr>
                         <tr><td>응답 헤더</td><td>Authorization: Bearer {액세스 토큰}<br>Set-Cookie: refreshToken=xxxxxx; Path=/; Domain=your-cookie-domain.com; HttpOnly; Secure</td></tr>
                         <tr><td>응답 본문</td><td><pre><code>{
-  "access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXdVc2VyMTIzIiwicm9sZSI6WyJST0xFX1VTRVIiXSwiaWF0IjoxNzE1ODAwMDAwLCJleHAiOjE3MTU4MDE4MDB9.xxxx"
+  "access_token": "dummy.access.token"
 }</code></pre></td></tr>
                     </table>
                 </article>
@@ -261,7 +265,11 @@
                         <tr><td>요청 본문</td><td>multipart/form-data 형식<br>profile: 이미지 파일</td></tr>
                         <tr><td>응답 코드</td><td>200: 업로드 성공<br>400: 잘못된 파일<br>500: 서버 오류</td></tr>
                         <tr><td>응답 본문</td><td><pre><code>{
-  "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg"
+  "status": "success",
+  "message": "프로필 이미지가 성공적으로 업로드되었습니다.",
+  "data": {
+    "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg"
+  }
 }</code></pre></td></tr>
                     </table>
                 </article>
@@ -275,7 +283,11 @@
   "userId": "newUser123"
 }</code></pre></td></tr>
                         <tr><td>응답 코드</td><td>200: 중복 체크 결과</td></tr>
-                        <tr><td>응답 본문</td><td>boolean (true: 중복됨, false: 사용 가능)</td></tr>
+                        <tr><td>응답 본문</td><td><pre><code>{
+  "status": "success",
+  "message": "사용자 ID 중복 확인이 완료되었습니다.",
+  "data": false
+}</code></pre></td></tr>
                     </table>
                 </article>
                 <article id="닉네임-중복-체크">
@@ -288,7 +300,11 @@
   "nickname": "쾌활한다람쥐"
 }</code></pre></td></tr>
                         <tr><td>응답 코드</td><td>200: 중복 체크 결과</td></tr>
-                        <tr><td>응답 본문</td><td>boolean (true: 중복됨, false: 사용 가능)</td></tr>
+                        <tr><td>응답 본문</td><td><pre><code>{
+  "status": "success",
+  "message": "닉네임 중복 확인이 완료되었습니다.",
+  "data": false
+}</code></pre></td></tr>
                     </table>
                 </article>
                 <article id="사용자-토큰-쿠키-정리">
@@ -299,7 +315,9 @@
                         <tr><td>설명</td><td>클라이언트의 refreshToken 쿠키를 만료시켜 제거합니다.</td></tr>
                         <tr><td>응답 코드</td><td>200: 쿠키 정리 성공</td></tr>
                         <tr><td>응답 본문</td><td><pre><code>{
-  "message": "refreshToken deleted"
+  "status": "success",
+  "message": "리프레시 토큰이 성공적으로 삭제되었습니다.",
+  "data": null
 }</code></pre></td></tr>
                     </table>
                 </article>
@@ -311,8 +329,8 @@
                     <h3>4.1. OAuth2 소셜 로그인 콜백 처리</h3>
                     <table>
                         <tr><td>메소드</td><td><span class="badge badge-post">POST</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/oauth2/callback/{provider}</code></td></tr>
-                        <tr><td>설명</td><td>소셜 프로바이더로부터 인증 후 리디렉션되는 엔드포인트</td></tr>
+                        <tr><td>엔드포인트</td><td><code>/api/public/oauth2/callback/{provider}</code></td></tr>
+                        <tr><td>설명</td><td>소셜 프로바이더로부터 인증 후 리디렉션되는 엔드포인트. 각 프로바이더(kakao, naver, google)에 대해 이 경로로 POST 요청을 보냅니다.</td></tr>
                         <tr><td>경로 파라미터</td><td>provider: 소셜 로그인 프로바이더 (kakao, naver, google)</td></tr>
                         <tr><td>요청 본문</td><td><pre><code>{
   "tempCode": "abcdef123456", // 소셜 프로바이더로부터 발급받은 임시 코드
@@ -397,7 +415,7 @@
                 <article id="아이디로-이메일-찾아-임시-비밀번호-전송">
                     <h3>5.5. 아이디로 이메일 찾아 임시 비밀번호 전송</h3>
                     <table>
-                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
+                        <tr><td>메소드</td><td><span class="badge badge-post">POST</span></td></tr>
                         <tr><td>엔드포인트</td><td><code>/api/public/findPassWithEmail</code></td></tr>
                         <tr><td>설명</td><td>사용자 ID를 기반으로 등록된 이메일을 찾아 임시 비밀번호를 발송합니다.</td></tr>
                         <tr><td>요청 본문</td><td><pre><code>{
@@ -447,260 +465,109 @@ data: {"content": "New notification!"}</code></pre></td></tr>
                 </article>
             </section>
 
-            <section id="일기-api">
-                <h2>7. 일기 API</h2>
-                <article id="일기-작성">
-                    <h3>7.1. 일기 작성</h3>
+            <section id="관리자-필터-api">
+                <h2>7. 관리자 필터 관리 API</h2>
+                <p class="mb-4">이 API를 통해 관리자는 시스템 내에서 플러그형 필터를 관리하고 구성할 수 있습니다. 이러한 필터는 정의된 조건에 따라 요청을 가로챌 수 있으므로 보안 규칙이나 요청 처리 동작을 동적으로 수정할 수 있습니다. 모든 엔드포인트는 <code>ADMIN</code> 역할이 필요합니다. 기본 경로는 <code>/api/admin/filters</code> 입니다.</p>
+                <article id="admin-모든-필터-가져오기">
+                    <h3>7.1. 등록된 모든 필터 가져오기</h3>
+                    <table>
+                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
+                        <tr><td>엔드포인트</td><td><code>/api/admin/filters</code></td></tr>
+                        <tr><td>설명</td><td>현재 등록된 모든 플러그형 필터 및 적용된 조건 목록을 검색합니다.</td></tr>
+                        <tr><td>인증</td><td>Bearer Token (ADMIN 역할) 필요</td></tr>
+                        <tr><td>응답 코드</td><td>200: 성공<br>401: 권한 없음<br>403: 금지됨</td></tr>
+                        <tr><td>응답 본문 (성공 200)</td><td><pre><code>{
+  "filters": [
+    {
+      "filterId": "jwtVerificationFilter",
+      "filterClassName": "JwtVerificationFilter",
+      "conditions": [
+        {
+          "id": "uuid1-jwt-public",
+          "description": "public paths",
+          "patterns": ["/public/**"],
+          "methods": []
+        }
+      ]
+    }
+    // ... 추가 필터 정보
+  ]
+}</code></pre></td></tr>
+                    </table>
+                </article>
+
+                <article id="admin-필터-조건-추가">
+                    <h3>7.2. 필터에 조건 추가</h3>
                     <table>
                         <tr><td>메소드</td><td><span class="badge badge-post">POST</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries</code></td></tr>
-                        <tr><td>설명</td><td>새로운 일기를 작성하고 저장합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
+                        <tr><td>엔드포인트</td><td><code>/api/admin/filters/{filterId}/conditions</code></td></tr>
+                        <tr><td>설명</td><td>지정된 필터에 새 <code>PathPatternFilterCondition</code>을 추가합니다. 이 조건은 필터 동작이 변경될 수 있는 (예: 건너뛰기) URL 패턴 및 HTTP 메소드를 정의합니다.</td></tr>
+                        <tr><td>인증</td><td>Bearer Token (ADMIN 역할) 필요</td></tr>
+                        <tr><td>경로 변수</td><td><code>filterId</code> (문자열): 조건을 추가할 필터의 고유 ID (예: "jwtVerificationFilter")</td></tr>
                         <tr><td>요청 본문</td><td><pre><code>{
-  "title": "오늘의 일기", // 선택적
-  "content": "오늘은 정말 즐거운 하루였다." // 필수
+  "description": "Allow public access to specific API endpoints",
+  "patterns": ["/api/public/version", "/api/public/health"],
+  "methods": ["GET"]
 }</code></pre></td></tr>
-                        <tr><td>응답 코드</td><td>201: 일기 작성 성공<br>400: 잘못된 요청<br>401: 인증 실패</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "id": 1,
-  "userId": 123,
-  "title": "오늘의 일기",
-  "content": "오늘은 정말 즐거운 하루였다.",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T12:00:00Z"
+                        <tr><td>응답 코드</td><td>200: 성공<br>400: 잘못된 요청 (예: 잘못된 요청 본문)<br>401: 권한 없음<br>403: 금지됨<br>404: 필터를 찾을 수 없음</td></tr>
+                        <tr><td>응답 본문 (성공 200)</td><td><pre><code>{
+  "message": "Condition added successfully to filter jwtVerificationFilter"
 }</code></pre></td></tr>
                     </table>
                 </article>
-                <article id="일기-목록-조회">
-                    <h3>7.2. 일기 목록 조회</h3>
+
+                <article id="admin-필터-조건-제거">
+                    <h3>7.3. 필터에서 조건 제거</h3>
                     <table>
-                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries</code></td></tr>
-                        <tr><td>설명</td><td>사용자가 작성한 일기 목록을 페이지네이션하여 조회합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>쿼리 파라미터</td><td>page: 페이지 번호 (기본값 0)<br>size: 페이지 당 항목 수 (기본값 10)<br>sort: 정렬 기준 (예: createdAt,desc)</td></tr>
-                        <tr><td>응답 코드</td><td>200: 일기 목록 조회 성공<br>401: 인증 실패</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "diaries": [
-    {
-      "id": 1,
-      "title": "오늘의 일기",
-      "createdAt": "2023-05-01T12:00:00Z",
-      "emotionStatus": "POSITIVE"
-    },
-    // ... 추가 일기 항목
-  ],
-  "pageInfo": {
-    "currentPage": 0,
-    "totalPages": 5,
-    "totalElements": 42
-  }
-}</code></pre></td></tr>
-                    </table>
-                </article>
-                <article id="특정-일기-상세-조회">
-                    <h3>7.3. 특정 일기 상세 조회</h3>
-                    <table>
-                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries/{diaryId}</code></td></tr>
-                        <tr><td>설명</td><td>ID에 해당하는 특정 일기의 상세 내용과 연관된 감정 분석 결과를 함께 조회합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>경로 파라미터</td><td>diaryId: 조회할 일기의 ID</td></tr>
-                        <tr><td>응답 코드</td><td>200: 일기 상세 조회 성공<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "id": 1,
-  "userId": 123,
-  "title": "오늘의 일기",
-  "content": "오늘은 정말 즐거운 하루였다.",
-  "alternativeThoughtByAI": "오늘은 새로운 경험을 통해 성장한 하루였다.",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T12:00:00Z",
-  "analysis": {
-    "id": 42,
-    "emotionDetection": "기쁨 80%, 슬픔 10%, 놀람 5%, 평온 5%",
-    "automaticThought": "나는 항상 실패한다.",
-    "promptForChange": "정말 항상 실패했나요? 성공했던 경험을 떠올려볼까요?",
-    "alternativeThought": "과거에 몇 번 실패했지만, 그것이 항상 실패한다는 의미는 아니다. 이번에는 다른 방법을 시도해볼 수 있다.",
-    "status": "POSITIVE",
-    "analyzedAt": "2023-05-01T12:05:00Z"
-  }
-}</code></pre></td></tr>
-                    </table>
-                </article>
-                <article id="특정-일기-수정">
-                    <h3>7.4. 특정 일기 수정</h3>
-                    <table>
-                        <tr><td>메소드</td><td><span class="badge badge-put">PUT</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries/{diaryId}</code></td></tr>
-                        <tr><td>설명</td><td>ID에 해당하는 특정 일기의 제목 또는 내용을 수정합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>경로 파라미터</td><td>diaryId: 수정할 일기의 ID</td></tr>
-                        <tr><td>요청 본문</td><td><pre><code>{
-  "title": "수정된 일기 제목", // 선택적
-  "content": "수정된 일기 내용" // 필수
-}</code></pre></td></tr>
-                        <tr><td>응답 코드</td><td>200: 일기 수정 성공<br>400: 잘못된 요청<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "id": 1,
-  "userId": 123,
-  "title": "수정된 일기 제목",
-  "content": "수정된 일기 내용",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T13:30:00Z"
-}</code></pre></td></tr>
-                    </table>
-                </article>
-                <article id="특정-일기-삭제">
-                    <h3>7.5. 특정 일기 삭제</h3>
-                     <table>
                         <tr><td>메소드</td><td><span class="badge badge-delete">DELETE</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries/{diaryId}</code></td></tr>
-                        <tr><td>설명</td><td>ID에 해당하는 특정 일기를 삭제합니다. 연관된 감정 분석 결과도 함께 삭제됩니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>경로 파라미터</td><td>diaryId: 삭제할 일기의 ID</td></tr>
-                        <tr><td>응답 코드</td><td>200/204: 일기 삭제 성공<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "message": "Diary deleted successfully"
+                        <tr><td>엔드포인트</td><td><code>/api/admin/filters/{filterId}/conditions/{conditionId}</code></td></tr>
+                        <tr><td>설명</td><td>조건의 고유 ID를 사용하여 지정된 필터에서 특정 조건을 제거합니다.</td></tr>
+                        <tr><td>인증</td><td>Bearer Token (ADMIN 역할) 필요</td></tr>
+                        <tr><td>경로 변수</td><td><code>filterId</code> (문자열): 필터 ID.<br><code>conditionId</code> (문자열): 제거할 조건의 고유 ID.</td></tr>
+                        <tr><td>응답 코드</td><td>200: 성공<br>401: 권한 없음<br>403: 금지됨<br>404: 필터 또는 조건을 찾을 수 없음</td></tr>
+                        <tr><td>응답 본문 (성공 200)</td><td><pre><code>{
+  "message": "Condition uuid1-jwt-public removed successfully from filter jwtVerificationFilter"
 }</code></pre></td></tr>
                     </table>
                 </article>
-            </section>
 
-            <section id="감정-분석-api">
-                <h2>8. 감정 분석 API</h2>
-                <article id="일기-감정-분석-요청">
-                    <h3>8.1. 일기 감정 분석 요청 (비동기)</h3>
+                <article id="admin-필터-상태-설정">
+                    <h3>7.4. 필터 상태 설정 (활성화/비활성화)</h3>
                     <table>
                         <tr><td>메소드</td><td><span class="badge badge-post">POST</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries/{diaryId}/analysis</code></td></tr>
-                        <tr><td>설명</td><td>특정 일기에 대한 AI 감정 분석을 비동기적으로 요청합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>경로 파라미터</td><td>diaryId: 감정 분석을 요청할 일기의 ID</td></tr>
-                        <tr><td>응답 코드</td><td>202: 분석 요청 성공<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음<br>409: 이미 분석 중이거나 완료됨</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "message": "Emotion analysis request accepted. Processing in background.",
-  "diaryId": 1,
-  "trackingId": "kafka-message-id-12345"
-}</code></pre></td></tr>
-                    </table>
-                </article>
-                <article id="일기-감정-분석-결과-조회">
-                    <h3>8.2. 일기 감정 분석 결과 조회</h3>
-                    <table>
-                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/diaries/{diaryId}/analysis</code></td></tr>
-                        <tr><td>설명</td><td>특정 일기의 AI 감정 분석 결과를 조회합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>경로 파라미터</td><td>diaryId: 감정 분석 결과를 조회할 일기의 ID</td></tr>
-                        <tr><td>응답 코드</td><td>200: 분석 결과 조회 성공<br>202: 분석 진행 중<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기 또는 분석 결과를 찾을 수 없음</td></tr>
-                        <tr><td>응답 본문 (200)</td><td><pre><code>{
-  "diaryId": 1,
-  "analysis": {
-    "id": 42,
-    "emotionDetection": "기쁨 80%, 슬픔 10%, 놀람 5%, 평온 5%",
-    "automaticThought": "나는 항상 실패한다.",
-    "promptForChange": "정말 항상 실패했나요? 성공했던 경험을 떠올려볼까요?",
-    "alternativeThought": "과거에 몇 번 실패했지만, 그것이 항상 실패한다는 의미는 아니다. 이번에는 다른 방법을 시도해볼 수 있다.",
-    "status": "POSITIVE",
-    "analyzedAt": "2023-05-01T12:05:00Z"
-  }
-}</code></pre></td></tr>
-                        <tr><td>응답 본문 (202)</td><td><pre><code>{
-  "message": "Analysis is still in progress.",
-  "diaryId": 1
+                        <tr><td>엔드포인트</td><td><code>/api/admin/filters/{filterId}/status</code></td></tr>
+                        <tr><td>설명</td><td>특정 필터를 활성화하거나 비활성화합니다. <br> - 필터 <strong>활성화</strong>는 해당 로직에 따라 요청을 처리함을 의미합니다 (특정 조건으로 인해 건너뛰지 않는 한). <br> - 필터 <strong>비활성화</strong>는 요청을 처리하지 않음을 의미합니다.</td></tr>
+                        <tr><td>인증</td><td>Bearer Token (ADMIN 역할) 필요</td></tr>
+                        <tr><td>경로 변수</td><td><code>filterId</code> (문자열): 필터 ID.</td></tr>
+                        <tr><td>쿼리 파라미터</td><td><code>action</code> (문자열): 수행할 작업. "enable" 또는 "disable"이어야 합니다.</td></tr>
+                        <tr><td>응답 코드</td><td>200: 성공<br>400: 잘못된 요청 (예: 잘못된 작업 매개변수)<br>401: 권한 없음<br>403: 금지됨<br>404: 필터를 찾을 수 없음</td></tr>
+                        <tr><td>응답 본문 (성공 200)</td><td><pre><code>{
+  "message": "Filter jwtVerificationFilter enabled" // 또는 "Filter jwtVerificationFilter disabled"
 }</code></pre></td></tr>
                     </table>
                 </article>
             </section>
-
-            <section id="설정-api">
-                <h2>9. 설정 API</h2>
-                <article id="사용자-설정-조회">
-                    <h3>9.1. 사용자 설정 조회</h3>
-                    <table>
-                        <tr><td>메소드</td><td><span class="badge badge-get">GET</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/settings</code></td></tr>
-                        <tr><td>설명</td><td>현재 로그인된 사용자의 커스텀 설정 및 기본 애플리케이션 설정을 조회합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>응답 코드</td><td>200: 설정 조회 성공<br>401: 인증 실패</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "settings": [
-    {
-      "settingKey": "notification.enabled",
-      "value": true,
-      "dataType": "BOOLEAN",
-      "description": "알림 활성화 여부",
-      "isUserEditable": true
-    },
-    {
-      "settingKey": "theme.color",
-      "value": "dark",
-      "dataType": "STRING",
-      "description": "앱 테마 색상",
-      "isUserEditable": true
-    },
-    // ... 추가 설정 항목
-  ]
-}</code></pre></td></tr>
-                    </table>
-                </article>
-                <article id="사용자-설정-수정">
-                    <h3>9.2. 사용자 설정 수정</h3>
-                    <table>
-                        <tr><td>메소드</td><td><span class="badge badge-put">PUT</span></td></tr>
-                        <tr><td>엔드포인트</td><td><code>/api/settings</code></td></tr>
-                        <tr><td>설명</td><td>현재 로그인된 사용자의 특정 설정을 수정합니다.</td></tr>
-                        <tr><td>인증</td><td>Bearer Token 필요</td></tr>
-                        <tr><td>요청 본문</td><td><pre><code>{
-  "settingsToUpdate": [
-    {
-      "settingKey": "notification.enabled",
-      "newValue": false
-    },
-    {
-      "settingKey": "theme.color",
-      "newValue": "light"
-    }
-    // ... 추가 수정할 설정
-  ]
-}</code></pre></td></tr>
-                        <tr><td>응답 코드</td><td>200: 설정 수정 성공<br>400: 잘못된 요청<br>401: 인증 실패</td></tr>
-                        <tr><td>응답 본문</td><td><pre><code>{
-  "message": "Settings updated successfully",
-  "updatedSettings": [
-    {
-      "settingKey": "notification.enabled",
-      "value": false
-    },
-    {
-      "settingKey": "theme.color",
-      "value": "light"
-    }
-  ]
-}</code></pre></td></tr>
-                    </table>
-                </article>
-            </section>
-
+            
             <section id="데이터-모델">
-                <h2>10. 데이터 모델</h2>
+                <h2>8. 데이터 모델</h2>
                 <article id="인증-및-사용자-모델">
-                    <h3>10.1. 인증 및 사용자 모델</h3>
+                    <h3>8.1. 인증 및 사용자 모델</h3>
                     <table>
                         <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
                         <tbody>
-                            <tr><td>JoinRequest</td><td>회원가입 요청</td><td>userId, userPw, userName, nickname, phone, gender, code(이메일 인증 코드) 등</td></tr>
+                            <tr><td>JoinRequest</td><td>회원가입 요청</td><td>userId, userPw, userName, nickname, phone, email, role, birthDate, gender, isPrivate, profile, code</td></tr>
                             <tr><td>LoginRequest</td><td>로그인 요청</td><td>userId, password</td></tr>
                             <tr><td>LoginResponse</td><td>로그인 응답</td><td>access_token</td></tr>
                             <tr><td>TokenRefreshRequest</td><td>토큰 갱신 요청</td><td>expiredToken, provider</td></tr>
                             <tr><td>TokenRefreshResponse</td><td>토큰 갱신 응답</td><td>access_token</td></tr>
                             <tr><td>OAuth2CallbackRequest</td><td>OAuth2 콜백 요청</td><td>tempCode, state</td></tr>
+                            <tr><td>OAuth2LoginUrlResponse</td><td>OAuth2 로그인 URL 응답</td><td>login_url</td></tr>
                             <tr><td>OAuth2LoginResponse</td><td>OAuth2 로그인 응답</td><td>access_token, userProfile</td></tr>
                         </tbody>
                     </table>
                 </article>
                 <article id="이메일-모델">
-                    <h3>10.2. 이메일 모델</h3>
+                    <h3>8.2. 이메일 모델</h3>
                     <table>
                         <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
                         <tbody>
@@ -712,8 +579,8 @@ data: {"content": "New notification!"}</code></pre></td></tr>
                         </tbody>
                     </table>
                 </article>
-                <article id="일기-및-분석-모델">
-                    <h3>10.3. 일기 및 분석 모델</h3>
+                <article id="데이터모델-일기-및-분석-모델">
+                    <h3>8.3. 일기 및 분석 모델 (참고용 - 현재 비활성 API)</h3>
                     <table>
                         <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
                         <tbody>
@@ -727,8 +594,8 @@ data: {"content": "New notification!"}</code></pre></td></tr>
                         </tbody>
                     </table>
                 </article>
-                <article id="설정-모델">
-                    <h3>10.4. 설정 모델</h3>
+                <article id="데이터모델-설정-모델">
+                    <h3>8.4. 설정 모델 (참고용 - 현재 비활성 API)</h3>
                     <table>
                         <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
                         <tbody>
@@ -741,11 +608,33 @@ data: {"content": "New notification!"}</code></pre></td></tr>
                     </table>
                 </article>
                 <article id="오류-모델">
-                    <h3>10.5. 오류 모델</h3>
+                    <h3>8.5. 오류 모델</h3>
                     <table>
                         <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
                         <tbody>
                             <tr><td>ErrorResponse</td><td>오류 응답</td><td>timestamp, status, error, message, path</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+                <article id="데이터모델-admin-filter-모델">
+                    <h3>8.6. Admin Filter 모델</h3>
+                     <table>
+                        <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
+                        <tbody>
+                            <tr><td>FilterInfo</td><td>등록된 필터 정보</td><td>filterId, filterClassName, conditions (List&lt;ConditionInfo&gt;)</td></tr>
+                            <tr><td>ConditionInfo</td><td>필터 조건 정보</td><td>id, description, patterns (Set&lt;String&gt;), methods (Set&lt;String&gt;)</td></tr>
+                            <tr><td>FilterListResponse</td><td>모든 필터 목록 응답</td><td>filters (List&lt;FilterInfo&gt;)</td></tr>
+                            <tr><td>AddConditionRequest</td><td>필터 조건 추가 요청</td><td>description (String), patterns (Set&lt;String&gt;), methods (Set&lt;HttpMethod&gt;)</td></tr>
+                            <tr><td>MessageResponse</td><td>일반 메시지 응답</td><td>message (String)</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+                <article id="공통-응답-모델">
+                    <h3>8.7. 공통 응답 모델 (Common Response Models)</h3>
+                    <table>
+                        <thead><tr><th>모델</th><th>설명</th><th>주요 필드</th></tr></thead>
+                        <tbody>
+                            <tr><td>ApiResponse&lt;T&gt;</td><td>공통 API 응답 구조</td><td>status (String), message (String), data (T)</td></tr>
                         </tbody>
                     </table>
                 </article>

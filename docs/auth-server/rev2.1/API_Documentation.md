@@ -10,9 +10,7 @@
 4.  [사용자 관리 API](#4-사용자-관리-api)
 5.  [인증 API](#5-인증-api)
 6.  [관리자 필터 관리 API](#6-관리자-필터-관리-api)
-7.  [일기 API](#7-일기-api)
-8.  [설정 API](#8-설정-api)
-9.  [데이터 모델](#9-데이터-모델)
+7.  [데이터 모델](#7-데이터-모델)
 
 ---
 
@@ -123,7 +121,7 @@
 
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
-| 메소드      | GET                                                                  |
+| 메소드      | POST                                                                 |
 | 엔드포인트  | `/api/public/findPassWithEmail`                                      |
 | 설명        | 사용자 ID를 기반으로 등록된 이메일을 찾아 임시 비밀번호를 발송합니다.                    |
 | 요청 본문   | { "userId": "newUser123" }                                           |
@@ -285,7 +283,7 @@
 | 설명        | 새로운 사용자를 등록합니다. 이메일 인증 코드가 사전에 검증되어야 합니다.               |
 | 요청 본문   | { "userId": "newUser123", "userPw": "password123!", "userName": "홍길동", "nickname": "쾌활한다람쥐", "phone": "010-1234-5678", "email": "user@example.com", "role": "USER", "birthDate": "1990-01-01", "gender": "male", "isPrivate": false, "profile": "https://zrr.kr/iPHf", "code": "A1B2C3D4" } |
 | 응답 코드   | 200: 회원 가입 성공<br>400: 잘못된 요청<br>409: 충돌 (이미 존재하는 아이디/닉네임)<br>500: 서버 오류 |
-| 응답 본문   | { "message": "join successfully" }                                     |
+| 응답 본문   | { "status": "success", "message": "회원가입이 성공적으로 완료되었습니다.", "data": null }                                     |
 
 **요청 본문 예시**
 ```json
@@ -308,7 +306,9 @@
 **응답 본문 예시**
 ```json
 {
-  "message": "join successfully"
+  "status": "success",
+  "message": "회원가입이 성공적으로 완료되었습니다.",
+  "data": null
 }
 ```
 
@@ -325,7 +325,7 @@
 | 설명        | 사용자 프로필 이미지를 업로드하고 이미지 URL을 반환받습니다.                         |
 | 요청 본문   | multipart/form-data 형식<br>profile: 이미지 파일                        |
 | 응답 코드   | 200: 업로드 성공<br>400: 잘못된 파일<br>500: 서버 오류                          |
-| 응답 본문   | { "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg" } |
+| 응답 본문   | { "status": "success", "message": "프로필 이미지가 성공적으로 업로드되었습니다.", "data": { "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg" } } |
 
 **요청 본문 예시**
 ```json
@@ -337,7 +337,11 @@
 **응답 본문 예시**
 ```json
 {
-  "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg"
+  "status": "success",
+  "message": "프로필 이미지가 성공적으로 업로드되었습니다.",
+  "data": {
+    "fileName": "https://your-file-server.com/attach/profile/xxxx_profile.jpg"
+  }
 }
 ```
 
@@ -350,7 +354,7 @@
 | 설명        | 제공된 사용자 ID가 이미 사용 중인지 확인합니다.                                |
 | 요청 본문   | { "userId": "newUser123" }                                           |
 | 응답 코드   | 200: 중복 체크 결과                                                      |
-| 응답 본문   | boolean (true: 중복됨, false: 사용 가능)                                 |
+| 응답 본문   | { "status": "success", "message": "사용자 ID 중복 확인이 완료되었습니다.", "data": false }                                 |
 
 **요청 본문 예시**
 ```json
@@ -361,7 +365,11 @@
 
 **응답 본문 예시**
 ```json
-true
+{
+  "status": "success",
+  "message": "사용자 ID 중복 확인이 완료되었습니다.",
+  "data": false
+}
 ```
 
 ### 4.5. 닉네임 중복 체크
@@ -373,7 +381,7 @@ true
 | 설명        | 제공된 닉네임이 이미 사용 중인지 확인합니다.                                 |
 | 요청 본문   | { "nickname": "쾌활한다람쥐" }                                       |
 | 응답 코드   | 200: 중복 체크 결과                                                      |
-| 응답 본문   | boolean (true: 중복됨, false: 사용 가능)                                 |
+| 응답 본문   | { "status": "success", "message": "닉네임 중복 확인이 완료되었습니다.", "data": false }                                 |
 
 **요청 본문 예시**
 ```json
@@ -384,7 +392,11 @@ true
 
 **응답 본문 예시**
 ```json
-true
+{
+  "status": "success",
+  "message": "닉네임 중복 확인이 완료되었습니다.",
+  "data": false
+}
 ```
 
 ### 4.6. 사용자 토큰 쿠키 정리 (로그아웃)
@@ -395,12 +407,14 @@ true
 | 엔드포인트  | `/api/public/clean/userTokenCookie`                                  |
 | 설명        | 클라이언트의 refreshToken 쿠키를 만료시켜 제거합니다. (소프트 로그아웃)        |
 | 응답 코드   | 200: 쿠키 정리 성공                                                     |
-| 응답 본문   | { "message": "User token cookie cleared successfully" }                 |
+| 응답 본문   | { "status": "success", "message": "리프레시 토큰이 성공적으로 삭제되었습니다.", "data": null }                 |
 
 **요청 본문 예시**
 ```json
 {
-  "message": "User token cookie cleared successfully"
+  "status": "success",
+  "message": "리프레시 토큰이 성공적으로 삭제되었습니다.",
+  "data": null
 }
 ```
 
@@ -531,15 +545,16 @@ true
 
 ---
 
-## 7. 인증 API (오타 수정: 이전 섹션 번호 7은 일기 API, 5가 인증 API가 되어야 함)
+## 5. 인증 API
 
-**컨트롤러**: `AuthController.java`, `TokenController.java`, `Oauth2Controller.java`
+**컨트롤러**: `TokenController.java`, `Oauth2Controller.java` (참고: `AuthController.java`는 `/auth_check` 엔드포인트만 포함).
 
 **기본 경로**: `/api/auth`, `/auth`, 또는 `/oauth2` (개별 엔드포인트에서 지정한 대로)
 
 ### 5.1. 로그인 (JWT 발급)
 
-*출처: `user_management_api.md` (`UsernamePasswordAuthenticationFilter` 또는 `/api/auth/login`을 처리하는 사용자 정의 JWT 필터를 통해 Spring Security에서 처리할 가능성이 높음)*
+**컨트롤러**: `TokenController.java`
+*참고: 현재 `TokenController.java`의 로그인 관련 로직은 실제 인증을 수행하지 않는 **플레이스홀더** 상태입니다. 실제 Spring Security `AuthenticationManager`를 사용한 인증 로직 구현이 필요합니다.*
 
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
@@ -547,9 +562,9 @@ true
 | 엔드포인트  | `/api/auth/login`                                                    |
 | 설명        | 사용자 ID와 비밀번호로 로그인하고 JWT 토큰을 발급받습니다.                         |
 | 요청 본문   | { "userId": "newUser123", "password": "password123!" }                 |
-| 응답 코드   | 200: 로그인 성공<br>400: 잘못된 요청<br>401: 로그인 실패                          |
+| 응답 코드   | 200: 로그인 성공 (현재 플레이스홀더 기준)<br>400: 잘못된 요청<br>401: 로그인 실패 (현재 플레이스홀더 기준)                          |
 | 응답 헤더   | Authorization: Bearer {액세스 토큰}<br>Set-Cookie: refreshToken=xxxxxx; Path=/; Domain=your-cookie-domain.com; HttpOnly; Secure | // 참고: 도메인을 구성해야 합니다.
-| 응답 본문   | { "access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXdVc2VyMTIzIiwicm9sZSI6WyJST0xFX1VTRVIiXSwiaWF0IjoxNzE1ODAwMDAwLCJleHAiOjE3MTU4MDE4MDB9.xxxx" } |
+| 응답 본문   | { "access_token": "dummy.access.token" } |
 
 **요청 본문 예시**
 ```json
@@ -562,7 +577,7 @@ true
 **응답 본문 예시**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXdVc2VyMTIzIiwicm9sZSI6WyJST0xFX1VTRVIiXSwiaWF0IjoxNzE1ODAwMDAwLCJleHAiOjE3MTU4MDE4MDB9.xxxx"
+  "access_token": "dummy.access.token"
 }
 ```
 
@@ -646,50 +661,14 @@ true
 }
 ```
 
-#### 5.4.2. Handle OAuth2 Callback
-
-| 항목        | 설명                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-| 메소드      | GET                                                                  |
-| 엔드포인트  | `/api/public/oauth2/callback/{provider}`                             |
-| 설명        | OAuth2 제공업체로부터의 인증 콜백을 처리합니다. 인증 성공 시 JWT 토큰과 사용자 프로필을 반환합니다. |
-| 경로 파라미터 | provider: 문자열. OAuth2 제공업체 이름.                               |
-| 쿼리 파라미터 | code (또는 tempCode): 문자열. 제공업체로부터 받은 인증 코드.<br>`state`: 문자열. CSRF 방지를 위한 상태 값 (선택적, 제공업체에 따라 다름). |
-| 요청 DTO    | OAuth2CallbackRequest (fields: tempCode, state) - 쿼리 파라미터로 전달됨 |
-| 응답 코드   | 200: 로그인 성공<br>400: 잘못된 요청 또는 코드/상태 값<br>401: 인증 실패<br>500: 서버 오류 |
-| 응답 헤더   | `Authorization`: `Bearer {액세스 토큰}`<br>`Set-Cookie`: `refreshToken=xxxxxx; Path=/; Domain=your-cookie-domain.com; HttpOnly; Secure` |
-| 응답 본문   | { "access_token": "eyJhbGciOiJIUzUxMiJ9...", "userProfile": { "nickname": "쾌활한다람쥐", "email": "user@example.com", "profileImageUrl": "https://example.com/profile.jpg" } } |
-
-**요청 본문 예시**
-```json
-{}
-```
-
-**응답 본문 예시**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzUxMiJ9...",
-  "userProfile": {
-    "nickname": "쾌활한다람쥐",
-    "email": "user@example.com",
-    "profileImageUrl": "https://example.com/profile.jpg"
-  }
-}
-```
-
-**컨트롤러**: `Oauth2Controller.java`
-
-| 항목        | 설명                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-
-### 5.5. OAuth2 Kakao 로그인 콜백
+#### 5.4.2. OAuth2 Kakao 로그인 콜백
 
 **컨트롤러**: `Oauth2Controller.java`
 
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
 | 메소드      | POST                                                                 |
-| 엔드포인트  | `/oauth2/callback/kakao`                                             |
+| 엔드포인트  | `/api/public/oauth2/callback/kakao`                                             |
 | 설명        | Kakao OAuth2 인증 후, 코드를 받아 서버에서 로그인/회원가입 처리 및 JWT를 발급합니다. |
 | 요청 본문   | { "tempCode": "authorization_code_from_kakao" } |
 | 응답 코드   | 200: OAuth2 로그인/회원가입 성공, JWT 발급<br>400: 잘못된 요청 또는 코드<br>500: 서버 오류 |
@@ -711,14 +690,14 @@ true
 }
 ```
 
-### 5.6. OAuth2 Naver 로그인 콜백
+#### 5.4.3. OAuth2 Naver 로그인 콜백
 
 **컨트롤러**: `Oauth2Controller.java`
 
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
 | 메소드      | POST                                                                 |
-| 엔드포인트  | `/oauth2/callback/naver`                                             |
+| 엔드포인트  | `/api/public/oauth2/callback/naver`                                             |
 | 설명        | Naver OAuth2 인증 후, 코드를 받아 서버에서 로그인/회원가입 처리 및 JWT를 발급합니다. |
 | 요청 본문   | { "tempCode": "authorization_code_from_naver", "state": "csrf_token_from_naver" } // Naver requires state parameter |
 | 응답 코드   | 200: OAuth2 로그인/회원가입 성공, JWT 발급<br>400: 잘못된 요청, 코드 또는 state 불일치<br>500: 서버 오류 |
@@ -741,14 +720,14 @@ true
 }
 ```
 
-### 5.7. OAuth2 Google 로그인 콜백
+#### 5.4.4. OAuth2 Google 로그인 콜백
 
 **컨트롤러**: `Oauth2Controller.java`
 
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
 | 메소드      | POST                                                                 |
-| 엔드포인트  | `/oauth2/callback/google`                                            |
+| 엔드포인트  | `/api/public/oauth2/callback/google`                                            |
 | 설명        | Google OAuth2 인증 후, 코드를 받아 서버에서 로그인/회원가입 처리 및 JWT를 발급합니다. |
 | 요청 본문   | { "tempCode": "authorization_code_from_google" } |
 | 응답 코드   | 200: OAuth2 로그인/회원가입 성공, JWT 발급<br>400: 잘못된 요청 또는 코드<br>500: 서버 오류 |
@@ -772,277 +751,17 @@ true
 
 ---
 
-## 7. 일기 API
-
-**컨트롤러**: `DiaryController.java`
-
-**기본 경로**: `/api/diaries`
-
-### 7.1. 일기 작성
-
-| 항목        | 설명                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-| 메소드      | POST                                                                 |
-| 엔드포인트  | `/api/diaries`                                                       |
-| 설명        | 새로운 일기를 작성하고 저장합니다.                                          |
-| 인증        | Bearer Token 필요                                                    |
-| 요청 본문   | { "title": "오늘의 일기", "content": "오늘은 정말 즐거운 하루였다." }             |
-| 응답 코드   | 201: 일기 작성 성공<br>400: 잘못된 요청<br>401: 인증 실패                      |
-| 응답 본문   | { "id": 1, "userId": 123, "title": "오늘의 일기", "content": "오늘은 정말 즐거운 하루였다.", "createdAt": "2023-05-01T12:00:00Z", "updatedAt": "2023-05-01T12:00:00Z" } |
-
-**요청 본문 예시**
-```json
-{
-  "title": "오늘의 일기",
-  "content": "오늘은 정말 즐거운 하루였다."
-}
-```
-
-**응답 본문 예시**
-```json
-{
-  "id": 1,
-  "userId": 123,
-  "title": "오늘의 일기",
-  "content": "오늘은 정말 즐거운 하루였다.",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T12:00:00Z"
-}
-```
-
-### 7.2. 일기 목록 조회
-
-| 항목          | 설명                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| 메소드        | GET                                                                  |
-| 엔드포인트    | `/api/diaries`                                                       |
-| 설명          | 사용자가 작성한 일기 목록을 페이지네이션하여 조회합니다.                           |
-| 인증          | Bearer Token 필요                                                    |
-| 쿼리 파라미터 | page: 페이지 번호 (기본값 0)<br>size: 페이지 당 항목 수 (기본값 10)<br>sort: 정렬 기준 (예: createdAt,desc) |
-| 응답 코드     | 200: 일기 목록 조회 성공<br>401: 인증 실패                               |
-| 응답 본문     | { "diaries": [ { "id": 1, "title": "오늘의 일기", "createdAt": "2023-05-01T12:00:00Z", "emotionStatus": "POSITIVE" } ], "pageInfo": { "currentPage": 0, "totalPages": 5, "totalElements": 42 } } |
-
-**요청 본문 예시**
-```json
-{}
-```
-
-**응답 본문 예시**
-```json
-{
-  "diaries": [
-    {
-      "id": 1,
-      "title": "오늘의 일기",
-      "createdAt": "2023-05-01T12:00:00Z",
-      "emotionStatus": "POSITIVE"
-    }
-  ],
-  "pageInfo": {
-    "currentPage": 0,
-    "totalPages": 5,
-    "totalElements": 42
-  }
-}
-```
-
-### 7.3. 특정 일기 상세 조회
-
-| 항목          | 설명                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| 메소드        | GET                                                                  |
-| 엔드포인트    | `/api/diaries/{diaryId}`                                             |
-| 설명          | ID에 해당하는 특정 일기의 상세 내용과 연관된 감정 분석 결과를 함께 조회합니다.           |
-| 인증          | Bearer Token 필요                                                    |
-| 경로 파라미터 | diaryId: 조회할 일기의 ID                                              |
-| 응답 코드     | 200: 일기 상세 조회 성공<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음 |
-| 응답 본문     | { "id": 1, "userId": 123, "title": "오늘의 일기", "content": "오늘은 정말 즐거운 하루였다.", "alternativeThoughtByAI": "오늘은 새로운 경험을 통해 성장한 하루였다.", "createdAt": "2023-05-01T12:00:00Z", "updatedAt": "2023-05-01T12:00:00Z", "analysis": { "id": 42, "emotionDetection": "기쁨 80%, 슬픔 10%, 놀람 5%, 평온 5%", "automaticThought": "나는 항상 실패한다.", "promptForChange": "정말 항상 실패했나요? 성공했던 경험을 떠올려볼까요?", "alternativeThought": "과거에 몇 번 실패했지만, 그것이 항상 실패한다는 의미는 아니다. 이번에는 다른 방법을 시도해볼 수 있다.", "status": "POSITIVE", "analyzedAt": "2023-05-01T12:05:00Z" } } |
-
-**요청 본문 예시**
-```json
-{}
-```
-
-**응답 본문 예시**
-```json
-{
-  "id": 1,
-  "userId": 123,
-  "title": "오늘의 일기",
-  "content": "오늘은 정말 즐거운 하루였다.",
-  "alternativeThoughtByAI": "오늘은 새로운 경험을 통해 성장한 하루였다.",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T12:00:00Z",
-  "analysis": {
-    "id": 42,
-    "emotionDetection": "기쁨 80%, 슬픔 10%, 놀람 5%, 평온 5%",
-    "automaticThought": "나는 항상 실패한다.",
-    "promptForChange": "정말 항상 실패했나요? 성공했던 경험을 떠올려볼까요?",
-    "alternativeThought": "과거에 몇 번 실패했지만, 그것이 항상 실패한다는 의미는 아니다. 이번에는 다른 방법을 시도해볼 수 있다.",
-    "status": "POSITIVE",
-    "analyzedAt": "2023-05-01T12:05:00Z"
-  }
-}
-```
-
-### 7.4. 특정 일기 수정
-
-| 항목          | 설명                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| 메소드        | PUT                                                                  |
-| 엔드포인트    | `/api/diaries/{diaryId}`                                             |
-| 설명          | ID에 해당하는 특정 일기의 제목 또는 내용을 수정합니다.                             |
-| 인증          | Bearer Token 필요                                                    |
-| 경로 파라미터 | diaryId: 수정할 일기의 ID                                              |
-| 요청 본문     | { "title": "수정된 일기 제목", "content": "수정된 일기 내용" }             |
-| 응답 코드     | 200: 일기 수정 성공<br>400: 잘못된 요청<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음 |
-| 응답 본문     | { "id": 1, "userId": 123, "title": "수정된 일기 제목", "content": "수정된 일기 내용", "createdAt": "2023-05-01T12:00:00Z", "updatedAt": "2023-05-01T13:30:00Z" } |
-
-**요청 본문 예시**
-```json
-{
-  "title": "수정된 일기 제목",
-  "content": "수정된 일기 내용"
-}
-```
-
-**응답 본문 예시**
-```json
-{
-  "id": 1,
-  "userId": 123,
-  "title": "수정된 일기 제목",
-  "content": "수정된 일기 내용",
-  "createdAt": "2023-05-01T12:00:00Z",
-  "updatedAt": "2023-05-01T13:30:00Z"
-}
-```
-
-### 7.5. 특정 일기 삭제
-
-| 항목          | 설명                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| 메소드        | DELETE                                                               |
-| 엔드포인트    | `/api/diaries/{diaryId}`                                             |
-| 설명          | ID에 해당하는 특정 일기를 삭제합니다.                                      |
-| 인증          | Bearer Token 필요                                                    |
-| 경로 파라미터 | diaryId: 삭제할 일기의 ID                                              |
-| 응답 코드     | 204: 일기 삭제 성공 (No Content)<br>401: 인증 실패<br>403: 접근 권한 없음<br>404: 일기를 찾을 수 없음 |
-
-**요청 본문 예시**
-```json
-{}
-```
-
-**응답 본문 예시**
-```json
-{}
-```
-
----
-
-## 8. Settings API
-
-**컨트롤러**: `SettingsController.java` (Assumed, verify if different)
-
-**기본 경로**: `/api/settings`
-
-### 7.1. 사용자 설정 조회
-
-| 항목        | 설명                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-| 메소드      | GET                                                                  |
-| 엔드포인트  | `/api/settings`                                                      |
-| 설명        | 현재 로그인된 사용자의 커스텀 설정 및 기본 애플리케이션 설정을 조회합니다.             |
-| 인증        | Bearer Token 필요                                                    |
-| 응답 코드   | 200: 설정 조회 성공<br>401: 인증 실패                                  |
-| 응답 본문   | { "settings": [ { "settingKey": "notification.enabled", "value": true, "dataType": "BOOLEAN", "description": "알림 활성화 여부", "isUserEditable": true }, { "settingKey": "theme.color", "value": "dark", "dataType": "STRING", "description": "앱 테마 색상", "isUserEditable": true } ] } |
-
-**요청 본문 예시**
-```json
-{}
-```
-
-**응답 본문 예시**
-```json
-{
-  "settings": [
-    {
-      "settingKey": "notification.enabled",
-      "value": true,
-      "dataType": "BOOLEAN",
-      "description": "알림 활성화 여부",
-      "isUserEditable": true
-    },
-    {
-      "settingKey": "theme.color",
-      "value": "dark",
-      "dataType": "STRING",
-      "description": "앱 테마 색상",
-      "isUserEditable": true
-    }
-  ]
-}
-```
-
-### 7.2. 사용자 설정 수정
-
-| 항목        | 설명                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-| 메소드      | PUT                                                                  |
-| 엔드포인트  | `/api/settings`                                                      |
-| 설명        | 현재 로그인된 사용자의 특정 설정을 수정합니다.                                 |
-| 인증        | Bearer Token 필요                                                    |
-| 요청 본문   | { "settingsToUpdate": [ { "settingKey": "notification.enabled", "newValue": false }, { "settingKey": "theme.color", "newValue": "light" } ] } |
-| 응답 코드   | 200: 설정 수정 성공<br>400: 잘못된 요청<br>401: 인증 실패                      |
-| 응답 본문   | { "message": "Settings updated successfully", "updatedSettings": [ { "settingKey": "notification.enabled", "value": false }, { "settingKey": "theme.color", "value": "light" } ] } |
-
-**요청 본문 예시**
-```json
-{
-  "settingsToUpdate": [
-    {
-      "settingKey": "notification.enabled",
-      "newValue": false
-    },
-    {
-      "settingKey": "theme.color",
-      "newValue": "light"
-    }
-  ]
-}
-```
-
-**응답 본문 예시**
-```json
-{
-  "message": "Settings updated successfully",
-  "updatedSettings": [
-    {
-      "settingKey": "notification.enabled",
-      "value": false
-    },
-    {
-      "settingKey": "theme.color",
-      "value": "light"
-    }
-  ]
-}
-```
-
----
-
-## 9. Data Models
+## 7. 데이터 모델
 
 This section outlines the primary data models used for requests and responses across the various APIs. For detailed field descriptions, refer to the corresponding Java DTO classes within the project.
 
 *Implementation Guideline: All data model Repository implementations should use JPA (Java Persistence API) and QueryDSL (specifically, the `io.github.openfeign.querydsl` fork). Direct SQL query writing is discouraged to maintain type safety, readability, and maintainability.*
 
-### 8.1. Authentication and User Models
+### 7.1. Authentication and User Models
 
 | Model                 | Description        | Key Fields                                                                 |
 | --------------------- | ------------------ | -------------------------------------------------------------------------- |
-| `JoinRequest`         | 회원가입 요청      | `userId`, `userPw`, `userName`, `nickname`, `phone`, `gender`, `code` (email auth code), etc. |
+| `JoinRequest`         | 회원가입 요청      | `userId`, `userPw`, `userName`, `nickname`, `phone`, `email`, `role`, `birthDate`, `gender`, `isPrivate`, `profile`, `code` |
 | `LoginRequest`        | 로그인 요청        | `userId`, `password`                                                       |
 | `LoginResponse`       | 로그인 응답        | `access_token`                                                             |
 | `TokenRefreshRequest` | 토큰 갱신 요청     | `expiredToken`, `provider`                                                 |
@@ -1051,7 +770,7 @@ This section outlines the primary data models used for requests and responses ac
 | `OAuth2LoginUrlResponse`| OAuth2 로그인 URL 응답 | `login_url`                                                              |
 | `OAuth2LoginResponse` | OAuth2 로그인 응답 | `access_token`, `userProfile`                                              |
 
-### 8.2. Email Models
+### 7.2. Email Models
 
 | Model                 | Description        | Key Fields                |
 | --------------------- | ------------------ | ------------------------- |
@@ -1061,7 +780,7 @@ This section outlines the primary data models used for requests and responses ac
 | `EmailCheckDto`       | 이메일 확인 요청   | `email`, `code`           |
 | `EmailCheckResponse`  | 이메일 확인 응답   | `message`                 |
 
-### 8.3. Diary and Analysis Models
+### 7.3. Diary and Analysis Models
 
 | Model                          | Description        | Key Fields                                                               |
 | ------------------------------ | ------------------ | ------------------------------------------------------------------------ |
@@ -1073,7 +792,7 @@ This section outlines the primary data models used for requests and responses ac
 | `DiaryAnalysisResult`          | 일기 분석 결과     | `id`, `emotionDetection`, `automaticThought`, `promptForChange`, `alternativeThought`, `status`, `analyzedAt` |
 | `DiaryAnalysisRequestResponse` | 일기 분석 요청 응답 | `message`, `diaryId`, `trackingId`                                       |
 
-### 8.4. Settings Models
+### 7.4. Settings Models
 
 | Model                       | Description          | Key Fields                                                        |
 | --------------------------- | -------------------- | ----------------------------------------------------------------- |
@@ -1083,13 +802,13 @@ This section outlines the primary data models used for requests and responses ac
 | `SettingsUpdateRequest`     | 설정 수정 요청       | `settingsToUpdate`                                                |
 | `SettingsUpdateResponse`    | 설정 수정 응답       | `message`, `updatedSettings`                                      |
 
-### 8.5. Error Models
+### 7.5. Error Models
 
 | Model           | Description | Key Fields                                     |
 | --------------- | ----------- | ---------------------------------------------- |
 | `ErrorResponse` | 오류 응답   | `timestamp`, `status`, `error`, `message`, `path` |
 
-### 8.6. Admin Filter Models
+### 7.6. Admin Filter Models
 
 These models are used by the Admin Filter Management API.
 
@@ -1101,5 +820,10 @@ These models are used by the Admin Filter Management API.
 | `AddConditionRequest` | Request to add a condition to a filter| `description` (String), `patterns` (Set of String), `methods` (Set of HttpMethod) |
 | `MessageResponse`     | Generic message response              | `message` (String)                                                         |
 
+### 7.7 공통 응답 모델 (Common Response Models)
+
+| Model                 | Description        | Key Fields                                      |
+| --------------------- | ------------------ | ----------------------------------------------- |
+| `ApiResponse<T>`      | 공통 API 응답 구조 | `status` (String), `message` (String), `data` (T) |
 
 ---
