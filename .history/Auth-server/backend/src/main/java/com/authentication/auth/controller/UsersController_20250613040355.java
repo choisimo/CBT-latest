@@ -78,25 +78,41 @@ public class UsersController implements UserApi {
         return ResponseEntity.ok(ApiResponse.success("프로필 이미지가 성공적으로 업로드되었습니다.", uploadResults));
     }
 
+    private boolean isValidExtension(String extension) {
+        List<String> allowedExtensions = Arrays.asList("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff");
+        return allowedExtensions.contains(extension);
+    }
+
+    private boolean isValidFileContent(File file, String extension) {
+        try {
+            String mimeType = Files.probeContentType(file.toPath());
+            List<String> allowedMimeTypes = Arrays.asList(
+                    "image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp", "image/svg+xml", "image/tiff");
+            return allowedMimeTypes.contains(mimeType);
+        } catch (IOException e) {
+            log.error("파일 내용 검증 중 오류 발생", e);
+            return false;
+        }
+    }
+
     @Override
     @PostMapping("/public/check/nickname/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserNameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
+    public boolean checkUserNameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
         log.info("/check/userName/IsDuplicate : {}", requestDto.userName());
-        boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
-        return ResponseEntity.ok(ApiResponse.success("닉네임 중복 확인이 완료되었습니다.", isDuplicate));
+        return userService.checkUserNameIsDuplicate(requestDto.userName());
     }
 
     @Override
     @PostMapping("/public/check/userId/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
+    public ResponseEntity<Boolean> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
         log.info("/check/userId/IsDuplicate : {}", requestDto.userName());
-        boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
-        return ResponseEntity.ok(ApiResponse.success("사용자 ID 중복 확인이 완료되었습니다.", isDuplicate));
+        // Assuming userId and userName are effectively the same for duplication checks
+        return ResponseEntity.ok(userService.checkUserNameIsDuplicate(requestDto.userName()));
     }
 
     @Override
     @PostMapping("/public/clean/userTokenCookie")
-    public ResponseEntity<ApiResponse<String>> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response) {
         String cookieName = "refreshToken";
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
@@ -109,12 +125,9 @@ public class UsersController implements UserApi {
                 }
             }
         }
-        return ResponseEntity.ok(ApiResponse.success("리프레시 토큰이 성공적으로 삭제되었습니다."));
+        return ResponseEntity.ok().body("refreshToken deleted");
     }
 
-    /**
-     * 새로운 쿠키를 프론트엔드에 전송합니다.
-     */
     private void sendFrontNewCookie(HttpServletResponse response, int status, TokenDto tokendto) {
         response.setStatus(status);
         response.addHeader(SecurityConstants.TOKEN_HEADER.getValue(), SecurityConstants.TOKEN_PREFIX.getValue() + tokendto.accessToken());
@@ -125,11 +138,10 @@ public class UsersController implements UserApi {
         response.addCookie(refreshTokenCookie);
     }
 
-    /**
-     * 요청에서 리프레시 토큰을 추출합니다.
-     */
     private String getRefreshTokenFromCookie(HttpServletRequest request) {
+        // cookie 배열 가지고 오기
         Cookie[] cookies = request.getCookies();
+
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if ("refreshToken".equals(cookie.getName())) {
@@ -141,9 +153,6 @@ public class UsersController implements UserApi {
         return null;
     }
 
-    /**
-     * Redis에서 리프레시 토큰 일치 여부를 확인합니다.
-     */
     private boolean RedisMatchRToken(String userId, String RToken) {
         return redisService.findRToken(userId, "server", RToken);
     }

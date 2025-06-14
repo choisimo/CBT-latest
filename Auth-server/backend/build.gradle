@@ -7,8 +7,8 @@ plugins {
 group = 'com.authentication'
 version = '0.0.1-SNAPSHOT'
 
-// 공식 QueryDSL 버전을 변수로 정의합니다.
-def queryDslVersion = '6.1' // Trying 6.1 for OpenFeign fork based on GitHub issue
+def queryDslVersion = '6.1'
+def lombokVersion = '1.18.32'
 
 java {
     toolchain {
@@ -35,9 +35,9 @@ dependencies {
     // Database
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    // Lombok (compileOnly + annotationProcessor)
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     // QueryDSL (OpenFeign 포크 버전으로 수정)
     implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"

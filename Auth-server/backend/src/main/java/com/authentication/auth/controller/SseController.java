@@ -13,9 +13,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
+import org.springframework.web.bind.annotation.RequestMapping;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api") // Added
 public class SseController implements SseApi {
 
     private final SseService sseService;

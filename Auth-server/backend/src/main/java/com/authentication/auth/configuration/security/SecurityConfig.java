@@ -2,7 +2,7 @@ package com.authentication.auth.configuration.security;
 
 import com.authentication.auth.service.security.PrincipalDetailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import com.authentication.auth.filter.FilterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -20,12 +20,20 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @Slf4j
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
+    /***
+     */
     private final CorsConfigurationSource corsConfigurationSource;
     private final PrincipalDetailService principalDetailService;
-
+    private final FilterRegistry filterRegistry;
+    
+    public SecurityConfig(CorsConfigurationSource corsConfigurationSource, PrincipalDetailService principalDetailService, FilterRegistry filterRegistry) {
+        this.corsConfigurationSource = corsConfigurationSource;
+        this.principalDetailService = principalDetailService;
+        this.filterRegistry = filterRegistry;
+    }
+    
     // Define restriction arrays - initialize as empty, to be populated as needed
     private static final String[] userRestrict = {};
     private static final String[] adminRestrict = {};
@@ -46,13 +54,14 @@ public class SecurityConfig {
         http.sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         // filter
-        // filterRegistry.registerFilters(http); // Commented out due to missing class
+        filterRegistry.configureFilters(http);
 
-        // authorization
-        http.authorizeHttpRequests((authorize) -> {
+         // authorization
+         http.authorizeHttpRequests((authorize) -> {
             authorize
                     .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                     .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN") // Added this line
                     .requestMatchers(userRestrict).hasAnyAuthority("ADMIN", "USER", "COMPANY")
                     .requestMatchers(adminRestrict).hasAnyAuthority("ADMIN")
                     .requestMatchers(companyRestrict).hasAnyAuthority("COMPANY", "ADMIN")
@@ -72,16 +81,30 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     *  @apiNote BCryptPasswordEncoder Bean
+     *  @return BCryptPasswordEncoder
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     *  @apiNote ObjectMapper Bean
+     *  @return ObjectMapper
+     */
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
 
+    /**
+     *  @apiNote AuthenticationManager Bean
+     *  @param authenticationConfiguration
+     *  @return AuthenticationManager
+     *  @throws Exception  
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();

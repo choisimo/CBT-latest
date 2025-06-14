@@ -1,5 +1,6 @@
 package com.authentication.auth.controller;
 
+import com.authentication.auth.dto.common.ApiResponse;
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
 import com.authentication.auth.dto.response.ErrorResponse;
@@ -100,12 +101,12 @@ public interface UserApi {
                                             schema = @Schema(implementation = ErrorResponse.class),
                                             examples = @ExampleObject(name = "잘못된 요청 응답", value = "{\"timestamp\": \"2023-10-27T10:25:00Z\", \"status\": 400, \"error\": \"Bad Request\", \"message\": \"Required request body is missing or userId is not provided.\", \"path\": \"/api/public/check/userId/IsDuplicate\"}")))
     })
-    ResponseEntity<com.authentication.auth.dto.common.ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto);
+    ResponseEntity<Boolean> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto);
 
     @Operation(summary = "사용자 토큰 쿠키 정리 (로그아웃)", description = "클라이언트의 refreshToken 쿠키를 만료시켜 제거합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "쿠키 정리 성공", 
                          content = @Content(mediaType = "application/json", schema = @Schema(example = "{\"message\": \"refreshToken deleted\"}")))
     })
-    ResponseEntity<com.authentication.auth.dto.common.ApiResponse<String>> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response);
+    ResponseEntity<?> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response);
 }

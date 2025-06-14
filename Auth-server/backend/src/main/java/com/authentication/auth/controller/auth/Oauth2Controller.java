@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +21,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/oauth2")
+@RequestMapping("/api/public/oauth2")
 public class Oauth2Controller {
 
     // 하핫.. 너는 서비스다...
@@ -48,6 +50,15 @@ public class Oauth2Controller {
         log.info("/oauth2/callback/google");
         log.info("tempCode for google from client server : {}", requestBody.get("tempCode"));
         return oauth2Service.handleOauth2Login(requestBody, response, "google");
+    }
+
+    @GetMapping("/login_url/{provider}")
+    public ResponseEntity<String> getOAuth2LoginUrl(@PathVariable("provider") String provider) {
+        // TODO: Implement actual logic to generate provider-specific OAuth2 login URL
+        String loginUrl = "https://example.com/oauth/" + provider + "/authorize"; // Placeholder
+        // For documentation, this endpoint is /api/public/oauth2/login_url/{provider}
+        // The class is already mapped to /api/public/oauth2 (see next step)
+        return ResponseEntity.ok("{\"login_url\": \"" + loginUrl + "\"}");
     }
 
 }

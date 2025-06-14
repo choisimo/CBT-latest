@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/admin/filters")
+@RequestMapping("/api/admin/filters")
 @Tag(name = "Admin Filter API", description = "관리자용 필터 관리 API")
 public class AdminFilterController {
 
