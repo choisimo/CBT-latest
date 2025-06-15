@@ -1,5 +1,5 @@
 
-# OSS Emotion 백엔드 API 명세서
+# CBT Back Diary API 명세서
 
 이 문서는 `oss-emotion` 백엔드 서비스의 API 엔드포인트 명세를 정의합니다.
 
