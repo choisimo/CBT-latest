@@ -1,0 +1,47 @@
+# 가상환경
+venv/
+env/
+.venv/
+.env/
+
+# 환경변수 파일
+.env
+
+# 파이썬 캐시
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 로그 파일
+*.log
+
+# 대화 기록 파일 (예제에서 생성되는 JSON 파일들)
+*.json
+!requirements.txt
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# 임시 파일
+*.tmp
+*.bak
+
+# OpenAI API 키가 포함된 설정 파일들
+config.py
+secrets.py 
