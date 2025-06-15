@@ -261,7 +261,7 @@ Based on the file listing of `Auth-server/backend/src/main/java/com/authenticati
 
 2.  **`EmailVerification.java`**
     *   **Inferred Responsibility:** This entity is likely responsible for managing email verification tokens or records. It would store information such as a user's email, a verification token/code, and an expiration timestamp for the token. Its purpose is to verify user email addresses during registration or email change processes.
-
+ 
 3.  **`Report.java`**
     *   **Inferred Responsibility:** This entity likely represents an analysis report generated based on user data, possibly from `Diary` entries. Fields might include report content, generation date, type of report, and a link to the user it belongs to. It seems to be a core part of an analysis or feedback feature in `Auth-Server`.
 
