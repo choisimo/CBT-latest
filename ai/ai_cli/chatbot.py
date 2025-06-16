@@ -7,6 +7,7 @@
 
 from typing import Optional
 from ai.ai_api.openai_service import OpenAIService
+from ai.ai_api.prompts import DIARY_EMOTION_ANALYSIS_PROMPT
 import logging
 
 logger = logging.getLogger(__name__)
@@ -127,8 +128,12 @@ class ChatBot:
         print("🤖 AI: ", end="", flush=True)
         
         try:
-            # 스트리밍 방식으로 응답 출력
-            for chunk in self.ai_service.chat_stream(user_input):
+            # 일기 감정 분석 프롬프트를 적용한 스트리밍 응답 출력
+            for chunk in self.ai_service.chat_stream(
+                user_input, 
+                system_prompt=DIARY_EMOTION_ANALYSIS_PROMPT,
+                max_tokens=4000
+            ):
                 print(chunk, end="", flush=True)
             print()  # 줄바꿈
         except Exception as e:
@@ -225,7 +230,7 @@ class AdvancedChatBot(ChatBot):
     
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(api_key)
-        self.system_prompt = None
+        self.system_prompt = DIARY_EMOTION_ANALYSIS_PROMPT  # 기본 프롬프트를 일기 분석으로 설정
         self.current_model = None
         self.current_temperature = None
     
