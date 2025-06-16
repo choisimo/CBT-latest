@@ -15,6 +15,7 @@ import logging
 from datetime import datetime
 
 from .openai_service import OpenAIService
+from .prompts import DIARY_EMOTION_ANALYSIS_PROMPT
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -44,10 +45,10 @@ streaming_sessions: Dict[str, Dict[str, Any]] = {}
 class ChatRequest(BaseModel):
     message: str
     conversation_history: Optional[List[Dict[str, str]]] = []
-    system_prompt: Optional[str] = "당신은 도움이 되는 AI 어시스턴트입니다."
+    system_prompt: Optional[str] = DIARY_EMOTION_ANALYSIS_PROMPT
     model: Optional[str] = "gpt-3.5-turbo"
     temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = 1000
+    max_tokens: Optional[int] = 4000
     stream: Optional[bool] = False
 
 class ChatResponse(BaseModel):
@@ -59,10 +60,10 @@ class ChatResponse(BaseModel):
 class StreamingChatRequest(BaseModel):
     message: str
     conversation_history: Optional[List[Dict[str, str]]] = []
-    system_prompt: Optional[str] = "당신은 도움이 되는 AI 어시스턴트입니다."
+    system_prompt: Optional[str] = DIARY_EMOTION_ANALYSIS_PROMPT
     model: Optional[str] = "gpt-3.5-turbo"
     temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = 1000
+    max_tokens: Optional[int] = 4000
 
 class StreamingStartResponse(BaseModel):
     stream_id: str
@@ -83,7 +84,7 @@ async def health_check():
     """헬스 체크 엔드포인트"""
     try:
         # OpenAI API 연결 테스트
-        test_response = openai_service.chat("테스트", max_tokens=5)
+        test_response = openai_service.chat("테스트", max_tokens=4000)
         return {
             "status": "healthy",
             "openai_api": "connected",

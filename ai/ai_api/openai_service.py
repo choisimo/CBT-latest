@@ -12,11 +12,26 @@ from typing import List, Dict, Optional
 from datetime import datetime
 from openai import OpenAI
 import logging
+from .prompts import CONVERSATION_TITLE_PROMPT
 
-# .env 파일 자동 로드
+# .env 파일 자동 로드 (상위 디렉토리 포함)
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # .env 파일에서 환경변수 로드
+    import os
+    
+    # 현재 디렉토리에서 .env 파일 찾기
+    load_dotenv()
+    
+    # 상위 디렉토리에서 .env 파일 찾기
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(parent_dir, '.env')
+    load_dotenv(env_path)
+    
+    # 최상위 디렉토리에서도 찾기
+    root_dir = os.path.dirname(parent_dir)
+    root_env_path = os.path.join(root_dir, '.env')
+    load_dotenv(root_env_path)
+    
 except ImportError:
     pass  # python-dotenv가 설치되지 않은 경우 무시
 
@@ -36,13 +51,13 @@ class OpenAIService:
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
             raise ValueError("OpenAI API 키가 필요합니다. 환경변수 OPENAI_API_KEY를 설정하거나 직접 전달하세요.")
-        print(self.api_key)
+        # API 키 보안을 위해 출력하지 않음
         self.client = OpenAI(api_key=self.api_key)
-        self.conversation_history: List[Dict[str, str, str]] = [] # 예시, self.conversation_history = [   {"role": "user", "content": "안녕하세요?", timestamp = "2023-01-01T12:00:00"} ]
+        self.conversation_history: List[Dict[str, str]] = [] # 예시, self.conversation_history = [   {"role": "user", "content": "안녕하세요?", "timestamp": "2023-01-01T12:00:00"} ]
         
         # 기본 설정 (환경변수에서 가져오거나 기본값 사용)
         self.default_model = os.getenv('DEFAULT_MODEL', "gpt-3.5-turbo")
-        self.default_max_tokens = int(os.getenv('DEFAULT_MAX_TOKENS', "2000")) # **토큰(Token)**은 자연어 처리에서 텍스트를 구성하는 최소 단위입니다. 단어, 구두점, 공백 등이 토큰으로 간주될 수 있습니다. ex) "Hello, world!"는 약 3개의 토큰으로 간주.
+        self.default_max_tokens = int(os.getenv('DEFAULT_MAX_TOKENS', "4000")) # **토큰(Token)**은 자연어 처리에서 텍스트를 구성하는 최소 단위입니다. 단어, 구두점, 공백 등이 토큰으로 간주될 수 있습니다. ex) "Hello, world!"는 약 3개의 토큰으로 간주.
         self.default_temperature = float(os.getenv('DEFAULT_TEMPERATURE', "0.7")) # 모델의 창의성 정도, 값이 낮을수록 모델이 더 결정적이고 예측 가능한 응답 생성
         
     def add_message(self, role: str, content: str):
@@ -55,7 +70,7 @@ class OpenAIService:
         self.conversation_history.append(message)
         logger.info(f"메시지 추가: {role} - {content[:50]}...")
     
-    def get_conversation_history(self) -> List[Dict[str, str, str]]:
+    def get_conversation_history(self) -> List[Dict[str, str]]:
         """대화 기록 반환"""
         return self.conversation_history
     
@@ -192,7 +207,7 @@ class OpenAIService:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "다음 대화 내용을 바탕으로 간단하고 명확한 제목을 생성해주세요. 10글자 이내로 작성하세요."},
+                    {"role": "system", "content": CONVERSATION_TITLE_PROMPT},
                     {"role": "user", "content": conversation_preview}
                 ],
                 max_tokens=30, 
