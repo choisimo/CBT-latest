@@ -1,4 +1,4 @@
-package main.java.com.authentication.auth.diary.controller;
+package com.authentication.auth.diary.controller;
 
 import com.authentication.auth.diary.dto.DiaryResponseDto;
 import com.authentication.auth.diary.service.DiaryService;

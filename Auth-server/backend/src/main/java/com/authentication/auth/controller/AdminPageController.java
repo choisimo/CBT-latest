@@ -1,4 +1,4 @@
-package main.java.com.authentication.auth.controller;
+package com.authentication.auth.controller;
 
 import com.authentication.auth.filter.FilterRegistry;
 import com.authentication.auth.filter.PluggableFilter;

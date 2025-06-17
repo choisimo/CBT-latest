@@ -1,4 +1,4 @@
-package main.java.com.authentication.auth.diary.repository;
+package com.authentication.auth.diary.repository;
 
 import com.authentication.auth.domain.Diary;
 import org.springframework.data.jpa.repository.JpaRepository;
