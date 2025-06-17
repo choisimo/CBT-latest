@@ -1,6 +1,6 @@
 package com.authentication.auth.controller;
 
-import com.authentication.auth.dto.common.ApiResponse;
+
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
 import com.authentication.auth.dto.response.ErrorResponse;

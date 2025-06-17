@@ -29,7 +29,7 @@ public class DiaryService {
     public DiaryResponseDto findDiaryById(Long diaryId) {
         User currentUser = getCurrentUser();
 
-        Diary diary = diaryRepository.findByIdAndUser(diaryId, currentUser)
+        Diary diary = diaryRepository.findByIdAndUserId(diaryId, currentUser.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Diary not found or access denied"));
 
         return DiaryResponseDto.from(diary);
