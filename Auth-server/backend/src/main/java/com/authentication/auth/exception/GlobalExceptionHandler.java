@@ -1,6 +1,6 @@
 package com.authentication.auth.exception;
 
-import com.authentication.auth.dto.common.ApiResponse;
+import com.authentication.auth.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 전역 예외 처리 핸들러
@@ -26,15 +27,15 @@ public class GlobalExceptionHandler {
      * CustomException 처리
      */
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException e) {
+    public ResponseEntity<ApiResponse<?>> handleCustomException(CustomException e) {
         log.error("CustomException occurred: {}", e.getMessage(), e);
         
         ErrorType errorType = e.getErrorType();
         HttpStatus status = HttpStatus.valueOf(errorType.getStatusCode());
         
-        ApiResponse<Object> response = ApiResponse.failure(
-            e.getMessage(), 
-            errorType.name()
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            errorType,
+            Map.of("details", e.getMessage())
         );
         
         return ResponseEntity.status(status).body(response);
@@ -44,12 +45,13 @@ public class GlobalExceptionHandler {
      * 파일 크기 제한 초과 예외 처리
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
         log.error("File size exceeds maximum limit: {}", e.getMessage());
         
-        ApiResponse<Object> response = ApiResponse.failure(
-            "File size exceeds maximum limit", 
-            "FILE_TOO_LARGE"
+        // Assuming ErrorType has a FILE_TOO_LARGE enum constant
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            ErrorType.FILE_TOO_LARGE, 
+            Map.of("details", "File size exceeds maximum limit")
         );
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -59,7 +61,7 @@ public class GlobalExceptionHandler {
      * 유효성 검사 실패 예외 처리
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<List<String>>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("Validation failed: {}", e.getMessage());
         
         BindingResult bindingResult = e.getBindingResult();
@@ -69,9 +71,9 @@ public class GlobalExceptionHandler {
             errors.add(fieldError.getField() + ": " + fieldError.getDefaultMessage());
         }
         
-        ApiResponse<List<String>> response = ApiResponse.failure(
-            "Validation failed", 
-            errors
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            ErrorType.GENERAL_ERROR, // Or a more specific ErrorType.VALIDATION_ERROR if available
+            Map.of("details", "Validation failed", "errors", errors)
         );
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -81,12 +83,12 @@ public class GlobalExceptionHandler {
      * IllegalArgumentException 처리
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException e) {
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException e) {
         log.error("IllegalArgumentException occurred: {}", e.getMessage(), e);
         
-        ApiResponse<Object> response = ApiResponse.failure(
-            e.getMessage(), 
-            "INVALID_ARGUMENT"
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            ErrorType.INVALID_REQUEST, 
+            Map.of("details", e.getMessage())
         );
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -96,12 +98,13 @@ public class GlobalExceptionHandler {
      * 일반적인 Runtime 예외 처리
      */
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException e) {
+    public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException e) {
         log.error("Unexpected RuntimeException occurred: {}", e.getMessage(), e);
         
-        ApiResponse<Object> response = ApiResponse.failure(
-            "An unexpected error occurred", 
-            "INTERNAL_SERVER_ERROR"
+        // Assuming ErrorType has an INTERNAL_SERVER_ERROR enum constant
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            ErrorType.INTERNAL_SERVER_ERROR, 
+            Map.of("details", "An unexpected error occurred")
         );
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -111,12 +114,13 @@ public class GlobalExceptionHandler {
      * 모든 예외의 최종 처리자
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception e) {
+    public ResponseEntity<ApiResponse<?>> handleGenericException(Exception e) {
         log.error("Unexpected exception occurred: {}", e.getMessage(), e);
         
-        ApiResponse<Object> response = ApiResponse.failure(
-            "An unexpected error occurred", 
-            "INTERNAL_SERVER_ERROR"
+        // Assuming ErrorType has an INTERNAL_SERVER_ERROR enum constant
+        ApiResponse<Map<String, Object>> response = ApiResponse.error(
+            ErrorType.INTERNAL_SERVER_ERROR, 
+            Map.of("details", "An unexpected error occurred")
         );
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

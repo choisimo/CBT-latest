@@ -12,7 +12,10 @@ public enum SecurityConstants {
     TOKEN_TYPE("JWT"),
     TOKEN_HEADER("Authorization"),
     TOKEN_PREFIX("Bearer "),
+    TOKEN_DEFAULT_ROLE("ROLE_USER"),
     REFRESH_TOKEN_TYPE("refreshJWT"),
+    REFRESH_TOKEN_TTL_SECONDS(String.valueOf(7 * 24 * 60 * 60)),
+
     
     // 쿠키 관련 상수
     COOKIE_REFRESH_TOKEN("refreshToken"),
@@ -48,6 +51,13 @@ public enum SecurityConstants {
     
     public String getValue() {
         return value;
+    }
+    /**
+     *  Heap 메모리 저장  -> 어차피 enum 은 static  이므로  
+     *  상관 없을 듯;
+     */
+    public int getIntValue() {
+        return Integer.parseInt(value);
     }
     
     /**

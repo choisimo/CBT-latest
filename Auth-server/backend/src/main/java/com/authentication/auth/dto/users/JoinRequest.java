@@ -27,6 +27,7 @@ public record JoinRequest (
     @Schema(description = "사용자 전화번호", example = "010-1234-5678", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "전화번호는 필수입니다")
     @Pattern(regexp = "^\\d{3}-\\d{3,4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다")
+    /** Domain: Not directly in User entity. Used for registration process. */
     String phone,
     
     @Schema(description = "사용자 이메일 주소", example = "user@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -37,21 +38,26 @@ public record JoinRequest (
     String role,
     
     @Schema(description = "사용자 생년월일", example = "1990-01-01")
+    /** Domain: Not directly in User entity. Used for registration process. */
     Date birthDate,
     
     @Schema(description = "사용자 성별", example = "male", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "성별은 필수입니다")
+    /** Domain: Not directly in User entity. Used for registration process. */
     String gender,
     
     @Schema(description = "계정 공개 여부", example = "false", defaultValue = "false")
     @JsonProperty("isPrivate") 
+    /** Domain: Not directly in User entity. Used for registration process. */
     boolean isPrivate,
     
     @Schema(description = "프로필 이미지 URL", example = "https://zrr.kr/iPHf")
+    /** Domain: Not directly in User entity. Used for registration process. */
     String profile,
     
     @Schema(description = "이메일 인증 코드", example = "A1B2C3D4", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "인증 코드는 필수입니다")
+    /** Domain: Not directly in User entity. Used for email verification during registration. */
     String code
 ) {
     /**

@@ -2,8 +2,13 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
     id 'io.spring.dependency-management' version '1.1.4'
-    // Lombok automatic configuration
-    id 'io.freefair.lombok' version '8.4'
+    // Lombok automatic configuration via FreeFair plugin
+    id 'io.freefair.lombok' version '8.6'
+}
+
+// Configure Lombok version for the FreeFair plugin to ensure JDK 21 compatibility
+lombok {
+    version.set("1.18.32")
 }
 
 group = 'com.authentication'
@@ -79,6 +84,12 @@ dependencies {
 
 // 컴파일 시 QueryDSL 생성 소스 출력 디렉토리 설정
 tasks.named('compileJava', JavaCompile) {
+    doFirst {
+        println '--- compileJava compiler args: ---'
+        options.getCompilerArgs().each { println it }
+        println 'annotationProcessorPath: ' + options.getAnnotationProcessorPath()?.asPath
+    }
+
     options.getGeneratedSourceOutputDirectory().set(file("$buildDir/generated/sources/annotationProcessor/java/main"))
     options.compilerArgs += [
         "-Aquerydsl.generatedAnnotationClass=jakarta.annotation.Generated",

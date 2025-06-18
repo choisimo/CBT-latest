@@ -2,6 +2,7 @@ package com.authentication.auth.exception;
 
 public enum ErrorType {
     // General Errors
+    GENERAL_ERROR("General error", 400),
     INVALID_REQUEST("Invalid request", 400),
     UNAUTHORIZED("Unauthorized", 401),
     FORBIDDEN("Forbidden", 403),

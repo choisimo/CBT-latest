@@ -286,11 +286,11 @@ While the custom `ErrorController.java` in the codebase defines specific templat
 | 항목        | 설명                                                                 |
 | ----------- | -------------------------------------------------------------------- |
 | 메소드      | POST                                                                 |
-| 엔드포인트  | `/api/auth/login`                                                    |
-| 설명        | 사용자 ID와 비밀번호로 로그인하고 JWT 토큰을 발급받습니다.                         |
+| 엔드포인트  | `/api/public/login`                                                  |
+| 설명        | 사용자 ID와 비밀번호로 로그인하고 JWT 토큰 및 사용자 정보를 발급받습니다.             |
 | 요청 본문   | ```json
   {
-    "userId": "newUser123",
+    "username": "newUser123", // Key changed from userId to username to match AuthenticationFilter
     "password": "password123!"
   }
   ```                                                                 |
@@ -298,7 +298,16 @@ While the custom `ErrorController.java` in the codebase defines specific templat
 | 응답 헤더   | Authorization: Bearer {액세스 토큰}<br>Set-Cookie: refreshToken=xxxxxx; Path=/; Domain=your-cookie-domain.com; HttpOnly; Secure | // Note: Domain should be configured
 | 응답 본문   | ```json
   {
-    "access_token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXdVc2VyMTIzIiwicm9sZSI6WyJST0xFX1VTRVIiXSwiaWF0IjoxNzE1ODAwMDAwLCJleHAiOjE3MTU4MDE4MDB9.xxxx"
+    "message": "로그인 성공",
+    "data": {
+      "access_token": "your_access_token_here",
+      "user": {
+        "userId": "ActualUserId", 
+        "username": "newUser123",
+        "email": "user@example.com",
+        "roles": ["ROLE_USER"] 
+      }
+    }
   }
   ```                                                                 |
 
@@ -685,8 +694,8 @@ This section outlines the primary data models used for requests and responses ac
 | Model                 | Description        | Key Fields                                                                 |
 | --------------------- | ------------------ | -------------------------------------------------------------------------- |
 | `JoinRequest`         | 회원가입 요청      | `userId`, `userPw`, `userName`, `nickname`, `phone`, `gender`, `code` (email auth code), etc. |
-| `LoginRequest`        | 로그인 요청        | `userId`, `password`                                                       |
-| `LoginResponse`       | 로그인 응답        | `access_token`                                                             |
+| `LoginRequest`        | 로그인 요청        | `username`, `password`                                                     |
+| `LoginResponse`       | 로그인 응답        | `message`, `data` (containing `access_token` and `user` object: `userId`, `username`, `email`, `roles`) |
 | `TokenRefreshRequest` | 토큰 갱신 요청     | `expiredToken`, `provider`                                                 |
 | `TokenRefreshResponse`| 토큰 갱신 응답     | `access_token`                                                             |
 | `OAuth2CallbackRequest`| OAuth2 콜백 요청  | `tempCode`, `state`                                                        |

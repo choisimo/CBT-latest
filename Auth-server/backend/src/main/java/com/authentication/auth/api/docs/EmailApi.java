@@ -4,7 +4,7 @@ import com.authentication.auth.dto.email.CustomEmailRequest;
 import com.authentication.auth.dto.email.EmailSendResponse;
 import com.authentication.auth.dto.email.EmailCheckResponse;
 import com.authentication.auth.dto.smtp.SmtpEmailRequest;
-import com.authentication.auth.dto.smtp.EmailCheckDto;
+import com.authentication.auth.dto.email.EmailCheckDto;
 import com.authentication.auth.dto.response.ErrorResponse;
 import com.authentication.auth.dto.smtp.EmailFindByIdRequest;
 import com.authentication.auth.dto.token.PrincipalDetails;

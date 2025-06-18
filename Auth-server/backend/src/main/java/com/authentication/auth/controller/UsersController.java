@@ -12,10 +12,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.authentication.auth.configuration.token.JwtUtility;
-import com.authentication.auth.dto.common.ApiResponse;
+import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
+import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.others.constants.SecurityConstants;
@@ -57,7 +58,7 @@ public class UsersController implements UserApi {
         // 회원가입 처리 (예외는 GlobalExceptionHandler에서 처리)
         userService.join(request);
         
-        return ResponseEntity.ok(ApiResponse.success("회원가입이 성공적으로 완료되었습니다."));
+        return ResponseEntity.ok(ApiResponse.success(null, "회원가입이 성공적으로 완료되었습니다."));
     }
 
     @Override
@@ -75,7 +76,7 @@ public class UsersController implements UserApi {
             uploadResults.put("fileName", fileUrl);
         }
         
-        return ResponseEntity.ok(ApiResponse.success("프로필 이미지가 성공적으로 업로드되었습니다.", uploadResults));
+        return ResponseEntity.ok(ApiResponse.success(uploadResults, "프로필 이미지가 성공적으로 업로드되었습니다."));
     }
 
     @Override
@@ -83,7 +84,7 @@ public class UsersController implements UserApi {
     public ResponseEntity<ApiResponse<Boolean>> checkUserNameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
         log.info("/check/userName/IsDuplicate : {}", requestDto.userName());
         boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
-        return ResponseEntity.ok(ApiResponse.success("닉네임 중복 확인이 완료되었습니다.", isDuplicate));
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "닉네임 중복 확인이 완료되었습니다."));
     }
 
     @Override
@@ -91,7 +92,7 @@ public class UsersController implements UserApi {
     public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
         log.info("/check/userId/IsDuplicate : {}", requestDto.userName());
         boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
-        return ResponseEntity.ok(ApiResponse.success("사용자 ID 중복 확인이 완료되었습니다.", isDuplicate));
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "사용자 ID 중복 확인이 완료되었습니다."));
     }
 
     @Override
@@ -109,7 +110,7 @@ public class UsersController implements UserApi {
                 }
             }
         }
-        return ResponseEntity.ok(ApiResponse.success("리프레시 토큰이 성공적으로 삭제되었습니다."));
+        return ResponseEntity.ok(ApiResponse.success(null, "리프레시 토큰이 성공적으로 삭제되었습니다."));
     }
 
     /**
