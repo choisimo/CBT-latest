@@ -29,11 +29,7 @@ public record JoinRequest (
     String email,
     
     @Schema(description = "사용자 역할", example = "USER", defaultValue = "USER")
-    String role,
-    
-    @Schema(description = "이메일 인증 코드", example = "A1B2C3D4", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "인증 코드는 필수입니다")    
-    /** Domain: Not directly in User entity. Used for email verification during registration. */
+    String role
 ) {
     /**
      * 기본 프로필 이미지를 사용하는 팩토리 메서드
