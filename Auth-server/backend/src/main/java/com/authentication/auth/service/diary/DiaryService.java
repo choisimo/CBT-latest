@@ -1,0 +1,201 @@
+package com.authentication.auth.service.diary;
+
+import com.authentication.auth.domain.Diary;
+import com.authentication.auth.domain.User;
+import com.authentication.auth.dto.diary.*;
+import com.authentication.auth.repository.DiaryRepository;
+import com.authentication.auth.repository.UserRepository;
+import com.authentication.auth.service.ai.AiClientService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+@Transactional(readOnly = true)
+public class DiaryService {
+
+    private final DiaryRepository diaryRepository;
+    private final UserRepository userRepository;
+    private final AiClientService aiClientService;
+
+    /**
+     * 다이어리 생성 (AI 분석 포함)
+     */
+    @Transactional
+    public DiaryResponse createDiary(Long userId, DiaryCreateRequest request) {
+        log.info("다이어리 생성 요청 - userId: {}, title: {}", userId, request.title());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 다이어리 엔터티 생성
+        Diary diary = Diary.builder()
+                .user(user)
+                .title(request.title())
+                .content(request.content())
+                .isNegative(false) // 기본값
+                .build();
+
+        // 다이어리 저장
+        Diary savedDiary = diaryRepository.save(diary);
+
+        // AI 분석 비동기 처리
+        aiClientService.analyzeDiary(request.content())
+                .subscribe(
+                    result -> {
+                        // AI 분석 결과를 다이어리에 반영
+                        savedDiary.setIsNegative(result.isNegative());
+                        if (result.alternativeThought() != null && !result.alternativeThought().isEmpty()) {
+                            savedDiary.setAlternativeThought(result.alternativeThought());
+                        }
+                        diaryRepository.save(savedDiary);
+                        log.info("AI 분석 완료 및 다이어리 업데이트 - diaryId: {}", savedDiary.getId());
+                    },
+                    error -> log.error("AI 분석 실패 - diaryId: {}, error: {}", savedDiary.getId(), error.getMessage())
+                );
+
+        return DiaryResponse.fromEntity(savedDiary);
+    }
+
+    /**
+     * 다이어리 목록 조회 (페이징)
+     */
+    public Page<DiaryListItem> getDiaries(Long userId, Pageable pageable) {
+        log.info("다이어리 목록 조회 - userId: {}, page: {}", userId, pageable.getPageNumber());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return diaryRepository.findByUserOrderByCreatedAtDesc(user, pageable)
+                .map(DiaryListItem::fromEntity);
+    }
+
+    /**
+     * 다이어리 상세 조회
+     */
+    public DiaryDetailResponse getDiary(Long userId, Long diaryId) {
+        log.info("다이어리 상세 조회 - userId: {}, diaryId: {}", userId, diaryId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
+                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+
+        return DiaryDetailResponse.fromEntity(diary);
+    }
+
+    /**
+     * 다이어리 수정
+     */
+    @Transactional
+    public DiaryResponse updateDiary(Long userId, Long diaryId, DiaryUpdateRequest request) {
+        log.info("다이어리 수정 - userId: {}, diaryId: {}", userId, diaryId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
+                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+
+        // 다이어리 정보 업데이트
+        if (request.title() != null) {
+            diary.setTitle(request.title());
+        }
+        if (request.content() != null) {
+            diary.setContent(request.content());
+            
+            // 내용이 변경된 경우 AI 재분석
+            aiClientService.analyzeDiary(request.content())
+                    .subscribe(
+                        result -> {
+                            diary.setIsNegative(result.isNegative());
+                            if (result.alternativeThought() != null && !result.alternativeThought().isEmpty()) {
+                                diary.setAlternativeThought(result.alternativeThought());
+                            }
+                            diaryRepository.save(diary);
+                            log.info("다이어리 수정 후 AI 재분석 완료 - diaryId: {}", diary.getId());
+                        },
+                        error -> log.error("다이어리 수정 후 AI 재분석 실패 - diaryId: {}, error: {}", diary.getId(), error.getMessage())
+                    );
+        }
+
+        return DiaryResponse.fromEntity(diaryRepository.save(diary));
+    }
+
+    /**
+     * 다이어리 삭제
+     */
+    @Transactional
+    public void deleteDiary(Long userId, Long diaryId) {
+        log.info("다이어리 삭제 - userId: {}, diaryId: {}", userId, diaryId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
+                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+
+        diaryRepository.delete(diary);
+        log.info("다이어리 삭제 완료 - diaryId: {}", diaryId);
+    }
+
+    /**
+     * 사용자별 다이어리 통계
+     */
+    public DiaryStatsResponse getDiaryStats(Long userId) {
+        log.info("다이어리 통계 조회 - userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        long totalCount = diaryRepository.countByUser(user);
+        long negativeCount = diaryRepository.findByUserAndIsNegativeTrueOrderByCreatedAtDesc(user, Pageable.unpaged()).getTotalElements();
+        long positiveCount = totalCount - negativeCount;
+
+        return new DiaryStatsResponse(totalCount, positiveCount, negativeCount);
+    }
+
+    /**
+     * 키워드로 다이어리 검색
+     */
+    public Page<DiaryListItem> searchDiaries(Long userId, String keyword, Pageable pageable) {
+        log.info("다이어리 검색 - userId: {}, keyword: {}", userId, keyword);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return diaryRepository.findByUserAndTitleContaining(user, keyword, pageable)
+                .map(DiaryListItem::fromEntity);
+    }
+
+    /**
+     * 부정적인 감정의 다이어리만 조회
+     */
+    public Page<DiaryListItem> getNegativeDiaries(Long userId, Pageable pageable) {
+        log.info("부정적 다이어리 조회 - userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return diaryRepository.findByUserAndIsNegativeTrueOrderByCreatedAtDesc(user, pageable)
+                .map(DiaryListItem::fromEntity);
+    }
+
+    /**
+     * 다이어리 통계 응답 DTO
+     */
+    public record DiaryStatsResponse(
+        long totalCount,
+        long positiveCount,
+        long negativeCount
+    ) {}
+} 

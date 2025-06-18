@@ -33,4 +33,8 @@ public record DiaryDetailResponse(
             analysisDto
         );
     }
+
+    public static DiaryDetailResponse fromEntity(Diary diary) {
+        return fromEntity(diary, null);
+    }
 }
