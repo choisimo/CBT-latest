@@ -1,0 +1,14 @@
+# IDE 및 OS 관련 파일
+.idea/
+*.iml
+*.iws
+.project
+.classpath
+.settings/
+.DS_Store
+Thumbs.db
+
+# Gradle 캐시 및 빌드 결과물 폴더
+# 이 폴더들은 컨테이너 내부에서 새로 생성되므로 제외합니다.
+.gradle/
+build/

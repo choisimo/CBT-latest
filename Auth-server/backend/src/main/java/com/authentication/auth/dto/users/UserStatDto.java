@@ -12,15 +12,7 @@ public record UserStatDto(
     String userName,
     String email,
     String role,
-    Date birthDate,
-    String gender,
-    boolean isPrivate,
-    String profile,
-    List<String> hashtags,
-    List<String> certifications,
-    List<String> groups,
-    LocalDateTime userActivites,
-    Date createdAt,
-    Date updatedAt,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt,
     LocalDateTime lastLogin
 ) {}

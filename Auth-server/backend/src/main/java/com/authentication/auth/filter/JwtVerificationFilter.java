@@ -118,7 +118,8 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
             sendErrorResponse(response, ErrorType.INVALID_TOKEN);
         } catch (Exception e) {
             log.error("JwtVerificationFilter 처리 중 예기치 않은 오류 발생, uri: {}: {}", request.getRequestURI(), e.getMessage(), e);
-            sendErrorResponse(response, ErrorType.INTERNAL_SERVER_ERROR);
+            //sendErrorResponse(response, ErrorType.INTERNAL_SERVER_ERROR);
+            throw e;
         }
     }
 
@@ -146,6 +147,11 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
      * @Description 지정된 오류 유형으로 API 응답을 생성하여 클라이언트에게 전송합니다.
      */
     private void sendErrorResponse(HttpServletResponse response, ErrorType errorType) throws IOException {
+        if (response.isCommitted()) {
+            // Another component (e.g., Spring error handler) already started the response
+            log.warn("Response already committed, skipping error response for {}", errorType);
+            return;
+        }
         response.setStatus(errorType.getStatusCode());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         
@@ -171,16 +177,12 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
      */
     @Override
     protected boolean shouldSkipFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        // Simplified: Determine if this filter should be skipped based on the request path.
-        // For example, skip for public API endpoints.
-        // This logic might involve consulting the FilterRegistry for configured skip paths for this filter.
-        // For now, let's assume it should not skip unless specifically configured.
-        // Example: if (path.startsWith("/api/public")) return true;
+        String path = request.getRequestURI(); // Keep for logging if needed
         log.trace("JwtVerificationFilter.shouldSkipFilter called for path: {}", path);
-        // The actual skipping is handled by AbstractSecurityFilter calling this method.
-        // Return true if filter should be skipped, false otherwise.
-        return false; // Default to not skipping
+        // Delegate to FilterRegistry to determine if this filter should be skipped
+        // based on its configured conditions.
+        // filterRegistry.shouldApplyFilter returns true if any condition wants to skip the filter.
+        return filterRegistry.shouldApplyFilter(getFilterId(), request);
     }
 
     /**

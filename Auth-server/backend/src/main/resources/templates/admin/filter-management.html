@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Filter Management</title>
+    <style>
+        /* CSS 스타일은 이전과 동일 */
+        body { font-family: sans-serif; margin: 20px; }
+        .container { width: 90%; margin: auto; }
+        h1, h2, h3 { color: #333; }
+        .filter-item { border: 1px solid #ddd; margin-bottom: 20px; padding: 15px; border-radius: 5px; background-color: #f9f9f9; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .filter-header h3 { margin: 0; }
+        .filter-details { margin-top: 15px; padding-left: 20px; border-left: 3px solid #eee; display: none; }
+        .conditions-list, .add-condition-form { margin-top: 10px; }
+        .condition-item { border-bottom: 1px dashed #eee; padding: 8px 0; }
+        .condition-item:last-child { border-bottom: none; }
+        .condition-item p { margin: 5px 0; }
+        .condition-item strong { display: inline-block; width: 100px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input[type='text'], .form-group textarea, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .form-group textarea { min-height: 60px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; }
+        .global-actions button, .add-condition-form button { margin-top:10px; }
+        .error-message { color: red; font-weight: bold; }
+        .success-message { color: green; font-weight: bold; }
+        .info-message { color: #17a2b8; font-weight: bold; }
+        .method-checkboxes label { margin-right: 10px; font-weight: normal; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Filter Management</h1>
+
+    <div id="messages"></div>
+
+    <div th:if="${filterListResponse == null or #lists.isEmpty(filterListResponse.filters)}">
+        <p>No filters registered or unable to load filter data.</p>
+    </div>
+
+    <div th:each="filter : ${filterListResponse?.filters}" class="filter-item" th:id="'filter-' + ${filter.filterId}">
+        <div class="filter-header" th:data-filter-id="${filter.filterId}" onclick="toggleDetails(this)">
+            <h3 th:text="${filter.filterId} + ' (' + ${filter.filterClassName} + ')'">Filter ID (Filter Class)</h3>
+            <span class="toggle-indicator">+</span>
+        </div>
+
+        <div class="filter-details" th:id="'details-' + ${filter.filterId}">
+            <h4>Global Actions</h4>
+            <div class="global-actions">
+                <button class="btn btn-warning" th:data-filter-id="${filter.filterId}" onclick="disableFilter(this)">Disable Globally</button>
+                <button class="btn btn-success" th:data-filter-id="${filter.filterId}" onclick="enableFilter(this)">Enable Globally</button>
+            </div>
+
+            <h4>Current Conditions</h4>
+            <div class="conditions-list">
+                <div th:if="${#lists.isEmpty(filter.conditions)}">
+                    <p>No specific skip conditions applied. Filter processes all requests unless globally disabled.</p>
+                </div>
+                <div th:each="condition : ${filter.conditions}" class="condition-item" th:id="'condition-' + ${filter.filterId} + '-' + ${condition.id}">
+                    <p><strong>ID:</strong> <span th:text="${condition.id}"></span></p>
+                    <p><strong>Description:</strong> <span th:text="${condition.description}"></span></p>
+                    <p><strong>Patterns:</strong> <span th:text="${#strings.isEmpty(condition.patterns) ? 'N/A' : condition.patterns}"></span></p>
+                    <p><strong>Methods:</strong> <span th:text="${#strings.isEmpty(condition.methods) ? 'N/A' : condition.methods}"></span></p>
+                    <button class="btn btn-danger btn-sm"
+                            th:data-filter-id="${filter.filterId}"
+                            th:data-condition-id="${condition.id}"
+                            onclick="removeCondition(this)">Remove</button>
+                </div>
+            </div>
+
+            <h4>Add New Skip Condition</h4>
+            <form class="add-condition-form" onsubmit="return false;">
+                <input type="hidden" name="filterId" th:value="${filter.filterId}" />
+                <div class="form-group">
+                    <label th:for="'desc-' + ${filter.filterId}">Description:</label>
+                    <input type="text" th:id="'desc-' + ${filter.filterId}" name="description" placeholder="e.g., Allow health check" required />
+                </div>
+                <div class="form-group">
+                    <label th:for="'patterns-' + ${filter.filterId}">URL Patterns (comma-separated):</label>
+                    <textarea th:id="'patterns-' + ${filter.filterId}" name="patterns" placeholder="/api/public/**, /health/**" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>HTTP Methods (if none selected, applies to all):</label>
+                    <div class="method-checkboxes">
+                        <label><input type="checkbox" name="methods" value="GET" /> GET</label>
+                        <label><input type="checkbox" name="methods" value="POST" /> POST</label>
+                        <label><input type="checkbox" name="methods" value="PUT" /> PUT</label>
+                        <label><input type="checkbox" name="methods" value="DELETE" /> DELETE</label>
+                        <label><input type="checkbox" name="methods" value="PATCH" /> PATCH</label>
+                        <label><input type="checkbox" name="methods" value="OPTIONS" /> OPTIONS</label>
+                        <label><input type="checkbox" name="methods" value="HEAD" /> HEAD</label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addCondition(this.form)">Add Condition</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_PATH = '/api/admin/filters';
+
+    // [수정됨] filterId를 직접 받는 대신, 클릭된 element를 받음
+    function toggleDetails(element) {
+        const filterId = element.dataset.filterId; // data-filter-id 속성 값을 읽음
+        const detailsDiv = document.getElementById('details-' + filterId);
+        const indicator = element.querySelector('.toggle-indicator');
+        if (detailsDiv.style.display === 'none' || detailsDiv.style.display === '') {
+            detailsDiv.style.display = 'block';
+            indicator.textContent = '-';
+        } else {
+            detailsDiv.style.display = 'none';
+            indicator.textContent = '+';
+        }
+    }
+
+    function displayMessage(message, type = 'info') {
+        const messagesDiv = document.getElementById('messages');
+        const messageClass = type === 'success' ? 'success-message' : (type === 'error' ? 'error-message' : 'info-message');
+        messagesDiv.innerHTML = `<p class="${messageClass}">${message}</p>`;
+        setTimeout(() => { messagesDiv.innerHTML = ''; }, 5000);
+    }
+    
+    // [수정됨] filterId를 form에서 직접 가져오므로 인자에서 제외
+    async function addCondition(formElement) {
+        const filterId = formElement.filterId.value; // form 안의 hidden input에서 filterId를 가져옴
+        const description = formElement.description.value;
+        const patterns = formElement.patterns.value.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        const selectedMethods = Array.from(formElement.querySelectorAll('input[name="methods"]:checked')).map(cb => cb.value);
+
+        if (!description || patterns.length === 0) {
+            displayMessage('Description and at least one pattern are required.', 'error');
+            return;
+        }
+
+        const payload = { description, patterns, methods: selectedMethods };
+
+        try {
+            const response = await fetch(`${API_BASE_PATH}/${filterId}/conditions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayMessage(result.message || 'Condition added successfully!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                displayMessage(result.message || `Error adding condition: ${response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to add condition:', error);
+            displayMessage('Failed to add condition. See console for details.', 'error');
+        }
+    }
+    
+    // [수정됨] element에서 filterId와 conditionId를 모두 읽어옴
+    async function removeCondition(element) {
+        const filterId = element.dataset.filterId;
+        const conditionId = element.dataset.conditionId;
+
+        if (!confirm(`Are you sure you want to remove condition ${conditionId} from filter ${filterId}?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_PATH}/${filterId}/conditions/${conditionId}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayMessage(result.message || 'Condition removed successfully!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                displayMessage(result.message || `Error removing condition: ${response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to remove condition:', error);
+            displayMessage('Failed to remove condition. See console for details.', 'error');
+        }
+    }
+
+    // [수정됨] element에서 filterId를 읽어옴
+    async function enableFilter(element) {
+        const filterId = element.dataset.filterId;
+        try {
+            const response = await fetch(`${API_BASE_PATH}/${filterId}/status?action=enable`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayMessage(result.message || `Filter ${filterId} enabled successfully!`, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                displayMessage(result.message || `Error enabling filter: ${response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to enable filter:', error);
+            displayMessage('Failed to enable filter. See console for details.', 'error');
+        }
+    }
+
+    // [수정됨] element에서 filterId를 읽어옴
+    async function disableFilter(element) {
+        const filterId = element.dataset.filterId;
+        try {
+            const response = await fetch(`${API_BASE_PATH}/${filterId}/status?action=disable`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayMessage(result.message || `Filter ${filterId} disabled successfully!`, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                displayMessage(result.message || `Error disabling filter: ${response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to disable filter:', error);
+            displayMessage('Failed to disable filter. See console for details.', 'error');
+        }
+    }
+</script>
+</body>
+</html>

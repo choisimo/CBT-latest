@@ -24,23 +24,28 @@ public class Diary {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "created_at", nullable = false)
+    // SQL: title VARCHAR(255) NULL -> nullable=true로 설정 (필수값 아님)
+    @Column(name = "title", length = 255)
+    private String title;
+
+    @Lob
+    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
+    private String content;
+
+    // SQL: alternative_thought TEXT NULL -> 필드명 및 컬럼명 일치
+    @Lob
+    @Column(name = "alternative_thought", columnDefinition = "TEXT")
+    private String alternativeThought;
+
+    // SQL: is_negative BOOLEAN DEFAULT FALSE
+    @Column(name = "is_negative")
+    private Boolean isNegative;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    @Column(length = 255, nullable = true)
-    private String title;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-
-    @Column(name = "alternative_thought", columnDefinition = "TEXT", nullable = true)
-    private String alternativeThought;
-
-    @Column(name = "is_negative", nullable = false)
-    private Boolean isNegative = false;
 
     @PrePersist
     protected void onCreate() {

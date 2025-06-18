@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터베이스 스키마 ERD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .mermaid svg {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 border border-gray-200">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2 text-gray-900" style="font-family: 'Noto Sans KR', sans-serif;">데이터베이스 스키마 (ERD)</h1>
+            <p class="text-gray-600 mb-8" style="font-family: 'Noto Sans KR', sans-serif;">각 테이블의 구조와 관계를 시각적으로 표현한 다이어그램입니다.</p>
+            <div class="mermaid w-full overflow-auto">
+erDiagram
+    %% =================================================================================
+    %% Table: Users - 사용자 정보 테이블
+    %% =================================================================================
+    Users {
+        BIGINT id PK "사용자 고유 ID"
+        VARCHAR(255) email UK "이메일 주소"
+        VARCHAR(255) password "해시된 비밀번호"
+        VARCHAR(50) user_name UK "사용자 별명"
+        VARCHAR(20) user_role "사용자 권한"
+        BOOLEAN is_premium "프리미엄 계정 여부"
+        VARCHAR(20) is_active "계정 활성 상태"
+        TIMESTAMP last_login "마지막 로그인 시간"
+        TIMESTAMP created_at "생성 시간"
+        TIMESTAMP updated_at "수정 시간"
+    }
+
+    %% =================================================================================
+    %% Table: Auth_Provider - 인증 제공자 정보 테이블
+    %% =================================================================================
+    Auth_Provider {
+        INT id PK "인증 제공자 고유 ID"
+        VARCHAR(50) provider_name UK "인증 제공자 이름"
+        VARCHAR(255) description "설명"
+        BOOLEAN is_active "활성화 여부"
+    }
+
+    %% =================================================================================
+    %% Table: User_Authentication - 사용자별 인증 수단 정보
+    %% =================================================================================
+    User_Authentication {
+        BIGINT user_id FK "사용자 ID"
+        INT auth_provider_id FK "인증 제공자 ID"
+        VARCHAR(255) social_id "소셜 로그인 ID"
+        TIMESTAMP created_at "생성 시간"
+        TIMESTAMP updated_at "수정 시간"
+    }
+
+    %% =================================================================================
+    %% Table: Settings_option - 기본 설정 옵션
+    %% =================================================================================
+    Settings_option {
+        INT id PK "설정 항목 고유 ID"
+        VARCHAR(100) setting_key UK "설정 키"
+        VARCHAR(255) default_value "기본값"
+        VARCHAR(20) data_type "데이터 타입"
+        VARCHAR(255) description "설명"
+        BOOLEAN is_user_editable "사용자 수정 가능 여부"
+    }
+
+    %% =================================================================================
+    %% Table: User_custom_setting - 사용자 커스텀 설정
+    %% =================================================================================
+    User_custom_setting {
+        BIGINT user_id FK "사용자 ID"
+        INT setting_id FK "설정 항목 ID"
+        VARCHAR(255) override_value "사용자 설정값"
+        TIMESTAMP created_at "생성 시간"
+        TIMESTAMP updated_at "수정 시간"
+    }
+
+    %% =================================================================================
+    %% Table: Diary - 일기 정보 테이블
+    %% =================================================================================
+    Diary {
+        BIGINT id PK "일기 고유 ID"
+        BIGINT user_id FK "작성자 ID"
+        VARCHAR(255) title "제목"
+        TEXT content "내용"
+        TEXT alternative_thought "대안적 사고"
+        BOOLEAN is_negative "부정적 감정 여부"
+        TIMESTAMP created_at "작성 시간"
+        TIMESTAMP updated_at "수정 시간"
+    }
+
+    %% =================================================================================
+    %% Table: Report - 종합 리포트
+    %% =================================================================================
+    Report {
+        BIGINT id PK "리포트 고유 ID"
+        BIGINT user_id FK "작성자 ID"
+        VARCHAR(255) summary_title "요약 제목"
+        TEXT change_process "사고 변화 과정"
+        TIMESTAMP created_at "생성 시간"
+        TIMESTAMP updated_at "수정 시간"
+    }
+
+    %% =================================================================================
+    %% Table: Diary_Report_Link - 일기-리포트 연결 테이블
+    %% =================================================================================
+    Diary_Report_Link {
+        BIGINT diary_id FK "일기 ID"
+        BIGINT report_id FK "리포트 ID"
+    }
+
+    %% =================================================================================
+    %% Relationships
+    %% =================================================================================
+    Users ||--o{ User_Authentication : "has"
+    Auth_Provider ||--o{ User_Authentication : "provides"
+    Users ||--o{ User_custom_setting : "has"
+    Settings_option ||--o{ User_custom_setting : "defines"
+    Users ||--o{ Diary : "writes"
+    Users ||--o{ Report : "owns"
+    Diary }o--o{ Diary_Report_Link : "links to"
+    Report }o--o{ Diary_Report_Link : "is linked by"
+
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+            'primaryColor': '#ffffff',
+            'primaryTextColor': '#333',
+            'primaryBorderColor': '#e5e7eb',
+            'lineColor': '#6b7280',
+            'secondaryColor': '#f3f4f6',
+            'tertiaryColor': '#fff'
+        }});
+    </script>
+</body>
+</html>

@@ -197,4 +197,18 @@ public class FilterRegistry {
         filterConditions.clear();
         log.info("모든 필터와 조건이 초기화됨");
     }
+
+    /**
+     * 특정 필터에 속한 특정 조건 ID의 조건을 반환합니다.
+     * @param filterId 필터 ID
+     * @param conditionId 조건 ID
+     * @return Optional<FilterCondition> 해당 ID의 조건 (존재하지 않으면 Optional.empty())
+     */
+    public Optional<FilterCondition> getCondition(String filterId, String conditionId) {
+        Map<String, FilterCondition> conditionsMap = filterConditions.get(filterId);
+        if (conditionsMap != null) {
+            return Optional.ofNullable(conditionsMap.get(conditionId));
+        }
+        return Optional.empty();
+    }
 }

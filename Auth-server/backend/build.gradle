@@ -2,6 +2,13 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
     id 'io.spring.dependency-management' version '1.1.4'
+    // Lombok automatic configuration via FreeFair plugin
+    id 'io.freefair.lombok' version '8.6'
+}
+
+// Configure Lombok version for the FreeFair plugin to ensure JDK 21 compatibility
+lombok {
+    version.set("1.18.32")
 }
 
 group = 'com.authentication'
@@ -28,6 +35,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client:3.3.0'
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
@@ -59,11 +67,6 @@ dependencies {
     implementation 'org.springframework:spring-context-support'
     implementation 'com.sun.mail:jakarta.mail:2.0.1'
 
-    // HTTP Client for AI Server
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-
     // Swagger (Springdoc)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
 
@@ -81,6 +84,12 @@ dependencies {
 
 // 컴파일 시 QueryDSL 생성 소스 출력 디렉토리 설정
 tasks.named('compileJava', JavaCompile) {
+    doFirst {
+        println '--- compileJava compiler args: ---'
+        options.getCompilerArgs().each { println it }
+        println 'annotationProcessorPath: ' + options.getAnnotationProcessorPath()?.asPath
+    }
+
     options.getGeneratedSourceOutputDirectory().set(file("$buildDir/generated/sources/annotationProcessor/java/main"))
     options.compilerArgs += [
         "-Aquerydsl.generatedAnnotationClass=jakarta.annotation.Generated",
@@ -96,6 +105,7 @@ tasks.named('clean', Delete) {
     delete buildDir
 }
 
+def querydslDir = "$buildDir/generated/querydsl"
 // QueryDSL 생성 소스를 메인 소스셋에 추가
 sourceSets {
     main {

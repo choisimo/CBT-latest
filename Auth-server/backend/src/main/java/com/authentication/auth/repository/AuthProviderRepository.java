@@ -9,4 +9,4 @@ import java.util.Optional;
 @Repository
 public interface AuthProviderRepository extends JpaRepository<AuthProvider, Integer> {
     Optional<AuthProvider> findByProviderName(String providerName);
-}
+}   
