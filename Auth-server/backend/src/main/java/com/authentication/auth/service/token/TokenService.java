@@ -59,7 +59,7 @@ public class TokenService {
         String provider = request.provider();
 
         // 1. Extract Refresh Token from request body
-        String refreshTokenFromBody = request.getRefreshToken();
+        String refreshTokenFromBody = request.refreshToken();
         if (refreshTokenFromBody == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token not found in request body.");
         }

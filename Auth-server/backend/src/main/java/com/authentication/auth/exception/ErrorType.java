@@ -100,7 +100,16 @@ public enum ErrorType {
     DIARY_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "다이어리 삭제에 실패했습니다."),
     
     // AI Service specific errors
-    AI_ANALYSIS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI 분석 서비스 호출에 실패했습니다.");
+    AI_ANALYSIS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AI 분석 서비스 호출에 실패했습니다."),
+
+    // Backward compatibility legacy constants
+    GENERAL_ERROR(HttpStatus.BAD_REQUEST, "General error"),
+    USERNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "Username already exists"),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "Expired token"),
+    TOKEN_EXPIRED_ALIAS(HttpStatus.UNAUTHORIZED, "Token expired"),
+    AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "Authentication failed"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "Forbidden"),
+    FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds maximum limit");
 
 
     private final HttpStatus status;
@@ -109,5 +118,12 @@ public enum ErrorType {
     ErrorType(HttpStatus status, String message) {
         this.status = status;
         this.message = message;
+    }
+
+    /**
+     * Returns the integer HTTP status code associated with this error type.
+     */
+    public int getStatusCode() {
+        return status.value();
     }
 }
