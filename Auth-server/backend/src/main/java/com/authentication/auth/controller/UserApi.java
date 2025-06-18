@@ -50,17 +50,17 @@ public interface UserApi {
                                    @ExampleObject(
                                        name = "일반 사용자 가입 예시",
                                        summary = "모든 필수 및 선택 정보를 포함한 일반적인 회원가입 요청입니다.",
-                                       value = "{\"userId\": \"newUser123\", \"userPw\": \"Password123!\", \"userName\": \"홍길동\", \"nickname\": \"쾌활한 다람쥐\", \"phone\": \"010-1234-5678\", \"email\": \"user@example.com\", \"role\": \"USER\", \"birthDate\": \"1990-01-01\", \"gender\": \"MALE\", \"isPrivate\": false, \"profile\": \"https://example.com/profile.jpg\", \"code\": \"A1B2C3\"}"
+                                        value = "{\"userId\": \"newUser123\", \"userPw\": \"Password123!\", \"email\": \"user@example.com\", \"role\": \"USER\"}"
                                    ),
                                    @ExampleObject(
                                        name = "필수 항목 누락 예시 (비밀번호 누락)",
                                        summary = "필수 항목인 비밀번호(userPw)가 누락된 경우의 요청입니다. (400 Bad Request 예상)",
-                                       value = "{\"userId\": \"incompleteUser\", \"userName\": \"김미영\", \"nickname\": \"조용한 고양이\", \"phone\": \"010-5555-4444\", \"email\": \"incomplete@example.com\", \"code\": \"D4E5F6\"}"
+                                        value = "{\"userId\": \"incompleteUser\", \"email\": \"incomplete@example.com\"}"
                                    ),
                                    @ExampleObject(
                                        name = "형식 오류 예시 (이메일 형식 오류)",
                                        summary = "이메일 형식이 올바르지 않은 경우의 요청입니다. (400 Bad Request 예상)",
-                                       value = "{\"userId\": \"badEmailUser\", \"userPw\": \"Password123!\", \"userName\": \"박형식\", \"nickname\": \"똑똑한 부엉이\", \"phone\": \"010-7777-8888\", \"email\": \"bademailformat\", \"code\": \"G7H8I9\"}"
+                                        value = "{\"userId\": \"badEmailUser\", \"userPw\": \"Password123!\", \"email\": \"bademailformat\"}"
                                    )
                                }
                               )

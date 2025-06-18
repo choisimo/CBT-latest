@@ -75,7 +75,8 @@
 //     }
     
 //     /**
-//      * 실패 응답 생성 (데이터 포함)
+//      * 실패 응답 생성 (데이터 포함) 
+//      *  --> 중복되므로 삭제됨
 //      */
 //     public static <T> ApiResponse<T> failure(String message, T data) {
 //         return new ApiResponse<>(false, message, data, null);
