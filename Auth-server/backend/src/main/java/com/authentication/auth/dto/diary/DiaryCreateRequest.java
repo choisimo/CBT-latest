@@ -1,13 +1,4 @@
 package com.authentication.auth.dto.diary;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@NoArgsConstructor
-public class DiaryCreateRequest {
-    private String title;
-    private String content;
+public record DiaryCreateRequest(String title, String content) {
 }

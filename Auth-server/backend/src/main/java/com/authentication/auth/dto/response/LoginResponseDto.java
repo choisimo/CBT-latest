@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 public record LoginResponseDto(
         @JsonProperty("access_token")
         String accessToken,
+        @JsonProperty("refresh_token")
+        String refreshToken,
         UserInfo user
 ) {
 
@@ -42,6 +44,7 @@ public record LoginResponseDto(
                 .build();
         return LoginResponseDto.builder()
                 .accessToken(tokenDto.accessToken())
+                .refreshToken(tokenDto.refreshToken())
                 .user(userInfo)
                 .build();
     }

@@ -28,3 +28,17 @@ public record DiaryListItem(
         );
     }
 }
+
+/**
+ * package com.authentication.auth.dto.diary;
+
+import com.authentication.auth.domain.Diary;
+import java.time.LocalDateTime;
+
+public record DiaryListItem(Long id, String title, LocalDateTime createdAt, boolean isNegative) {
+    public static DiaryListItem fromEntity(Diary diary) {
+        return new DiaryListItem(diary.getId(), diary.getTitle(), diary.getCreatedAt(), diary.isNegative());
+    }
+}
+ * 
+ */

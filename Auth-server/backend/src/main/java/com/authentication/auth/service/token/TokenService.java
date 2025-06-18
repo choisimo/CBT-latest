@@ -49,11 +49,7 @@ public class TokenService {
         // Store the refresh token in Redis
         redisService.saveRToken(userId, "local", refreshToken);
 
-        // Set the refresh token as an HttpOnly cookie
-        // This will use a new method in TokenProvider
-        TokenProvider.setHttpOnlyCookie(response, "refreshToken", refreshToken, REFRESH_TOKEN_TTL_SECONDS);
-
-        return new LoginResponse(accessToken);
+        return new LoginResponse(accessToken, refreshToken);
     }
 
     @Transactional
@@ -62,17 +58,18 @@ public class TokenService {
         String expiredAccessToken = request.expiredToken();
         String provider = request.provider();
 
-        // 1. Extract Refresh Token from cookie
-        String refreshTokenFromCookie = tokenProvider.checkCookie(httpRequest, httpResponse, provider);
-        if (refreshTokenFromCookie == null) {
-            // tokenProvider.checkCookie already sends a response if null and returns null,
-            // so this explicit check might be redundant if response is already committed.
-            // However, retaining for clarity or if checkCookie's behavior changes.
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token not found in cookie (handled by TokenProvider).");
+        // 1. Extract Refresh Token from request body
+        String refreshTokenFromBody = request.getRefreshToken();
+        if (refreshTokenFromBody == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token not found in request body.");
         }
 
         // 2. Validate the Refresh Token
-        if (!tokenProvider.validateRefreshToken(refreshTokenFromCookie)) {
+        /**
+         *  Access Token :  Secure Storage 에 저장 -> Body 에서 가져오기
+         *  Refresh Token : Secure Storage 에 저장 -> Body 에서 가져오기
+         */
+        if (!tokenProvider.validateRefreshToken(refreshTokenFromBody)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token.");
         }
 
@@ -83,8 +80,8 @@ public class TokenService {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Could not extract user ID from expired token.");
         }
 
-        // 4. Check if the Refresh Token from cookie exists in Redis for this user and provider
-        if (!redisService.isRTokenExist(userId, provider, refreshTokenFromCookie)) {
+        // 4. Check if the Refresh Token from request body exists in Redis for this user and provider
+        if (!redisService.isRTokenExist(userId, provider, refreshTokenFromBody)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token not found in Redis or mismatch.");
         }
 

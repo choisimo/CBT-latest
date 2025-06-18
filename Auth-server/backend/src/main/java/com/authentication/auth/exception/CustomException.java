@@ -1,25 +1,27 @@
 package com.authentication.auth.exception;
 
-public class CustomException extends RuntimeException {
+import lombok.Getter;
 
-    private ErrorType errorType;
+@Getter
+public class CustomException extends RuntimeException {
+    private final ErrorType errorType;
+    private final String customMessage;
 
     public CustomException(ErrorType errorType) {
         super(errorType.getMessage());
         this.errorType = errorType;
+        this.customMessage = errorType.getMessage();
     }
 
-    public CustomException(ErrorType errorType, String message) {
-        super(message);
+    public CustomException(ErrorType errorType, String customMessage) {
+        super(customMessage);
         this.errorType = errorType;
+        this.customMessage = customMessage;
     }
 
-    public CustomException(ErrorType errorType, String message, Throwable cause) {
-        super(message, cause);
+    public CustomException(ErrorType errorType, String customMessage, Throwable cause) {
+        super(customMessage, cause);
         this.errorType = errorType;
-    }
-
-    public ErrorType getErrorType() {
-        return errorType;
+        this.customMessage = customMessage;
     }
 }

@@ -53,7 +53,7 @@ public class AdminPageController {
 
     @GetMapping("/filter-ui")
     @Hidden // Hide from Swagger UI as it's a UI page
-    public String getFilterManagementPage(Model model) {
+    public ResponseEntity<?> getFilterManagementPage() {
         Map<String, PluggableFilter> filters = filterRegistry.getFilters();
         List<FilterInfo> filterInfos = filters.values().stream()
                 .map(filter -> {
@@ -63,16 +63,15 @@ public class AdminPageController {
                     return new FilterInfo(filter.getFilterId(), filter.getClass().getSimpleName(), conditions);
                 })
                 .collect(Collectors.toList());
-        
-        model.addAttribute("filterListResponse", new FilterListResponse(filterInfos));
-        return "admin/filter-management"; // Path to the Thymeleaf template
+        FilterListResponse responseData = new FilterListResponse(filterInfos);
+        return ResponseEntity.ok(responseData);
     }
 
     @GetMapping("/dashboard") // main dashboard path
     @Hidden // Hide from Swagger UI as it's a UI page
-    public String getAdminDashboardPage(Model model) {
+    public ResponseEntity<?> getAdminDashboardPage() {
         // Model attributes can be added here if needed for the dashboard
-        return "admin/index"; // Path to the new Thymeleaf admin index template
+        return ResponseEntity.ok(Map.of("message", "Admin dashboard data would be here."));
     }
 
     /**
@@ -81,8 +80,11 @@ public class AdminPageController {
      */
     @GetMapping({"", "/"})
     @Hidden
-    public String redirectAdminRoot() {
-        return "redirect:/admin/dashboard";
+    public ResponseEntity<?> redirectAdminRoot() {
+        return ResponseEntity.ok(Map.of(
+            "message", "Admin root. Client should navigate to the admin dashboard.",
+            "navigateTo", "/admin/dashboard"
+        ));
     }
 
 

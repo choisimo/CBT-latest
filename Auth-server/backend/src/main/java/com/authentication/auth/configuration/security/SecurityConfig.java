@@ -48,6 +48,7 @@ public class SecurityConfig {
         http.formLogin(AbstractHttpConfigurer::disable);
         // Cross-Site Request Forgery 공격 방어 비활성화
         http.csrf(AbstractHttpConfigurer::disable);
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin())); // Add this line
         // HTTP 기본 인증 비활성화
         http.httpBasic(AbstractHttpConfigurer::disable);
         // session 기반 로그인 비활성화
@@ -59,6 +60,7 @@ public class SecurityConfig {
          // authorization
          http.authorizeHttpRequests((authorize) -> {
             authorize
+                    .requestMatchers("/h2-console/**").permitAll() // Add this line
                     .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                     .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN") // Added this line

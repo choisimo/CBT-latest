@@ -169,14 +169,6 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
         redisService.saveRToken(username, SecurityConstants.DEFAULT_PROVIDER.getValue(), tokenDto.refreshToken());
         redisService.saveAccessToken(tokenDto.refreshToken(), tokenDto.accessToken(), username);
         
-        // 토큰을 쿠키에 저장
-        Cookie refreshTokenCookie = new Cookie(SecurityConstants.COOKIE_REFRESH_TOKEN.getValue(), tokenDto.refreshToken());
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setPath(SecurityConstants.COOKIE_PATH.getValue());
-        refreshTokenCookie.setDomain(cookieDomain);
-        refreshTokenCookie.setSecure(true);
-        
-        response.addCookie(refreshTokenCookie);
         response.addHeader(SecurityConstants.TOKEN_HEADER.getValue(), 
                           SecurityConstants.TOKEN_PREFIX.getValue() + tokenDto.accessToken());
         

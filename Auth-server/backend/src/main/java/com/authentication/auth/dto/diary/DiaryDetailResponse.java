@@ -38,3 +38,17 @@ public record DiaryDetailResponse(
         return fromEntity(diary, null);
     }
 }
+
+/**
+ * package com.authentication.auth.dto.diary;
+
+import com.authentication.auth.domain.Diary;
+import java.time.LocalDateTime;
+
+public record DiaryDetailResponse(Long id, String title, String content, LocalDateTime createdAt, boolean isNegative, String alternativeThought, Long userId) {
+    public static DiaryDetailResponse fromEntity(Diary diary) {
+        return new DiaryDetailResponse(diary.getId(), diary.getTitle(), diary.getContent(), diary.getCreatedAt(), diary.isNegative(), diary.getAlternativeThought(), diary.getUser().getId());
+    }
+}
+ * 
+ */
