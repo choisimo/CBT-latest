@@ -22,7 +22,7 @@ public enum SecurityConstants {
     // URL 패턴 관련 상수
     PUBLIC_API_PATH("/api/public/**"),
     AUTH_API_PATH("/api/auth/**"),
-    LOGIN_PATH("/api/auth/login"),
+    LOGIN_PATH("/api/public/login"),
     REGISTER_PATH("/api/auth/register"),
     REFRESH_PATH("/api/auth/refresh"),
     ADMIN_API_PATH("/api/admin/**"),

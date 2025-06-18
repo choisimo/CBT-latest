@@ -5,6 +5,7 @@ import com.authentication.auth.others.constants.FilterOrder;
 import com.authentication.auth.others.constants.SecurityConstants;
 import com.authentication.auth.configuration.token.JwtUtility;
 import com.authentication.auth.dto.response.ApiResponse;
+import com.authentication.auth.dto.response.LoginResponseDto;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.dto.token.PrincipalDetails;
 import com.authentication.auth.service.redis.RedisService;
@@ -73,6 +74,8 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
         this.authenticationManager = authenticationManager;
         this.jwtUtility = jwtUtility;
         this.objectMapper = objectMapper;
+        // Ensure JavaTimeModule and other registered modules are detected for serialization (e.g., LocalDateTime)
+        this.objectMapper.findAndRegisterModules();
         this.redisService = redisService;
         this.domain = domain;
         this.cookieDomain = cookieDomain;
@@ -178,12 +181,15 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
                           SecurityConstants.TOKEN_PREFIX.getValue() + tokenDto.accessToken());
         
         // 응답 본문에도 토큰 정보 포함
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("access_token", tokenDto.accessToken());
-        
+        var user = ((PrincipalDetails) authResult.getPrincipal()).getUser();
+        var roles = authResult.getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .collect(java.util.stream.Collectors.toList());
+        var loginResponse = LoginResponseDto.of(user, tokenDto, roles);
+
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), 
-                               ApiResponse.success(tokens, "로그인 성공"));
+        objectMapper.writeValue(response.getOutputStream(),
+                ApiResponse.success(loginResponse, "로그인 성공"));
         
         // SecurityContext에 인증 정보 설정
         SecurityContextHolder.getContext().setAuthentication(authResult);

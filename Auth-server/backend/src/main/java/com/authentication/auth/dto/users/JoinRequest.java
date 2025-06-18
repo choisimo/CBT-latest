@@ -13,7 +13,7 @@ import java.util.Date;
 /**
  * 회원 가입 요청 정보를 담는 불변 레코드
  */
-public record JoinRequest(
+public record JoinRequest (
     @Schema(description = "사용자 ID (로그인 시 사용)", example = "newuser123", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "사용자 ID는 필수입니다") 
     @Size(min = 4, max = 20, message = "사용자 ID는 4~20자 사이여야 합니다")

@@ -43,10 +43,5 @@ module.exports = {
   devServer: {
     open: true,
     port: 7079,
-    hot: true,
-    historyApiFallback: true,
-    static: {
-      directory: path.resolve(appDirectory, 'web'),
-    },
   },
 };

@@ -36,9 +36,9 @@ public class AdminPageController {
         if (condition instanceof PathPatternFilterCondition pathCondition) {
             return new ConditionInfo(
                     pathCondition.getId(),
-                    pathCondition.description(),
-                    pathCondition.patterns(),
-                    pathCondition.methods().stream().map(HttpMethod::name).collect(Collectors.toSet())
+                    pathCondition.getDescription(),
+                    pathCondition.getPatterns(),
+                    pathCondition.getMethods().stream().map(HttpMethod::name).collect(Collectors.toSet())
             );
         } else {
             // For generic or other types of conditions, provide basic info

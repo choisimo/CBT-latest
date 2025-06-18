@@ -54,6 +54,10 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
         return true;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     public String getNickname() {
         return user.getUserName();
     }

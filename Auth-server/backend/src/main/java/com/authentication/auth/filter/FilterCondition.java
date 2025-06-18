@@ -28,4 +28,22 @@ public interface FilterCondition {
      * @Description 이 필터 조건에 대한 설명을 반환합니다. 주로 로깅이나 디버깅 목적으로 사용됩니다.
      */
     String getDescription();
+
+    /**
+     * 조건의 활성화 상태를 반환합니다.
+     * @return true이면 조건이 활성화되어 필터 로직에 사용됨, false이면 비활성화되어 무시됨
+     */
+    boolean isEnabled();
+
+    /**
+     * 조건의 활성화 상태를 설정합니다.
+     * @param enabled 활성화 상태 (true 또는 false)
+     */
+    void setEnabled(boolean enabled);
+
+    /**
+     * 조건의 유형을 문자열로 반환합니다. (예: "path", "header", "ip")
+     * @return 조건 유형 문자열
+     */
+    String getType();
 }

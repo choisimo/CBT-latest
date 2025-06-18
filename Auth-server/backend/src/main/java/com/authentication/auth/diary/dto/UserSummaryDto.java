@@ -1,5 +1,4 @@
 package com.authentication.auth.diary.dto;
-
 import com.authentication.auth.domain.User;
 
 /**
