@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DiaryCreateRequest {
+public class DiaryUpdateRequest {
     private String title;
     private String content;
 }
