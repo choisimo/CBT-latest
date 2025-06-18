@@ -101,7 +101,8 @@ public class AuthorizationFilter extends AbstractSecurityFilter {
             chain.doFilter(request, response);
         } catch (Exception e) {
             log.error("권한 부여 필터 실행 중 오류 발생: {}", e.getMessage());
-            sendErrorResponse(response, ErrorType.AUTHENTICATION_FAILED);
+            //sendErrorResponse(response, ErrorType.AUTHENTICATION_FAILED);
+            throw e;
         }
     }
 
@@ -124,6 +125,10 @@ public class AuthorizationFilter extends AbstractSecurityFilter {
      * @Description 지정된 오류 유형으로 API 응답을 생성하여 클라이언트에게 전송합니다.
      */
     private void sendErrorResponse(HttpServletResponse response, ErrorType errorType) throws IOException {
+        if (response.isCommitted()) {
+            log.warn("Response already committed, skipping error response for {}", errorType);
+            return;
+        }
         response.setStatus(errorType.getStatusCode());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         

@@ -71,4 +71,22 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
     public String getName() {
         return getUsername();
     }
+
+    /**
+     * Returns the authentication provider name (e.g., google, kakao).
+     * If the user logged in with normal credentials, returns "server".
+     */
+    public String getProviderType() {
+        // Lazy guard – authentications may be uninitialized or empty
+        if (user.getAuthentications() == null || user.getAuthentications().isEmpty()) {
+            return "server";
+        }
+
+        try {
+            return user.getAuthentications().get(0).getAuthProvider().getProviderName();
+        } catch (Exception e) {
+            // Fallback for any unexpected null pointers
+            return "server";
+        }
+    }
 }

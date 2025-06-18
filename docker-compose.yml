@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  auth-server:
+    build:
+      # 빌드 컨텍스트를 독립적인 Gradle 프로젝트인 Auth-server/backend 로 지정합니다.
+      context: ./Auth-server/backend
+    container_name: auth-server-app
+    ports:
+      - "7078:7078"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb-container:3306/oss_emotion?useUnicode=true&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=nodove
+      - SPRING_DATASOURCE_PASSWORD=dover1234!
+      - SPRING_DATA_MONGODB_URI=mongodb://nodove:dover2718281!@mongodb-container:27017/oss_emotion?authSource=admin
+      - SPRING_DATA_REDIS_HOST=redis-container
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=Nnh5BgjBdgoZ7LsQVpfTJnVv5DFDJqLEqa83oWDv2vWQhHm94tKwhrFPCAqhzT2Fv7MHP25NtRiGKcJo7JC2ZZcD7UPsLXwgLv5PJ
+    depends_on:
+      - mariadb-container
+      - mongodb-container
+      - redis-container
+    networks:
+      - cbt-network
+
+  mariadb-container:
+    image: mariadb:10.6
+    container_name: mariadb-db
+    ports:
+      - "13306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=oss_emotion
+      - MYSQL_USER=nodove
+      - MYSQL_PASSWORD=dover1234!
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - cbt-network
+    restart: unless-stopped
+
+  mongodb-container:
+    image: mongo:6.0
+    container_name: mongodb-db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=nodove
+      - MONGO_INITDB_ROOT_PASSWORD=dover2718281!
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cbt-network
+    restart: unless-stopped
+
+  redis-container:
+    image: redis:7-alpine
+    container_name: redis-db
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass Nnh5BgjBdgoZ7LsQVpfTJnVv5DFDJqLEqa83oWDv2vWQhHm94tKwhrFPCAqhzT2Fv7MHP25NtRiGKcJo7JC2ZZcD7UPsLXwgLv5PJ
+    volumes:
+      - redis_data:/data
+    networks:
+      - cbt-network
+    restart: unless-stopped
+
+networks:
+  cbt-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+  mongodb_data:
+  redis_data:

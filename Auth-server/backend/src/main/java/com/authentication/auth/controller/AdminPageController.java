@@ -68,10 +68,22 @@ public class AdminPageController {
         return "admin/filter-management"; // Path to the Thymeleaf template
     }
 
-    @GetMapping("/dashboard") // Or @GetMapping("/") if base path is /admin
+    @GetMapping("/dashboard") // main dashboard path
     @Hidden // Hide from Swagger UI as it's a UI page
     public String getAdminDashboardPage(Model model) {
         // Model attributes can be added here if needed for the dashboard
         return "admin/index"; // Path to the new Thymeleaf admin index template
     }
+
+    /**
+     * Root mapping for /admin ("/admin" or "/admin/") to avoid NoResourceFoundException.
+     * Redirects to the dashboard page so that users hitting the base admin URL see the dashboard.
+     */
+    @GetMapping({"", "/"})
+    @Hidden
+    public String redirectAdminRoot() {
+        return "redirect:/admin/dashboard";
+    }
+
+
 }

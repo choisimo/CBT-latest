@@ -118,7 +118,8 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
             sendErrorResponse(response, ErrorType.INVALID_TOKEN);
         } catch (Exception e) {
             log.error("JwtVerificationFilter 처리 중 예기치 않은 오류 발생, uri: {}: {}", request.getRequestURI(), e.getMessage(), e);
-            sendErrorResponse(response, ErrorType.INTERNAL_SERVER_ERROR);
+            //sendErrorResponse(response, ErrorType.INTERNAL_SERVER_ERROR);
+            throw e;
         }
     }
 
@@ -146,6 +147,11 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
      * @Description 지정된 오류 유형으로 API 응답을 생성하여 클라이언트에게 전송합니다.
      */
     private void sendErrorResponse(HttpServletResponse response, ErrorType errorType) throws IOException {
+        if (response.isCommitted()) {
+            // Another component (e.g., Spring error handler) already started the response
+            log.warn("Response already committed, skipping error response for {}", errorType);
+            return;
+        }
         response.setStatus(errorType.getStatusCode());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         
