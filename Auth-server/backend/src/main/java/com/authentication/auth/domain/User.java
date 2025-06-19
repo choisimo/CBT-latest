@@ -75,4 +75,9 @@ public class User {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    // Method to activate user
+    public void activate() {
+        this.isActive = "ACTIVE";
+    }
 }

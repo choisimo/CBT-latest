@@ -1,10 +1,12 @@
 package com.authentication.auth.controller;
 
 import com.authentication.auth.api.docs.EmailApi;
+import com.authentication.auth.dto.response.ApiResponse;
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -32,72 +34,67 @@ public class EmailController implements EmailApi {
 
     @Override
     @PostMapping("/public/emailSend")
-    public ResponseEntity<EmailSendResponse> sendEmailAuthCode(@RequestBody @Valid SmtpEmailRequest request) {
-        try {
-            if (emailService.checkIsExistEmail(request.email())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new EmailSendResponse("user with this email already exist"));
-            }
-            String code = emailService.joinEmail(request.email());
-            this.redisService.saveEmailCode(request.email(), code);
-            return ResponseEntity.status(HttpStatus.OK).body(new EmailSendResponse("A temporary code has been sent to your email"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailSendResponse("email sent failed"));
+    public ResponseEntity<ApiResponse<EmailSendResponse>> sendEmailAuthCode(@RequestBody @Valid SmtpEmailRequest request) {
+        // Assume emailService.checkIsExistEmail and emailService.joinEmail throw CustomException on failure
+        if (emailService.checkIsExistEmail(request.email())) {
+            // This logic should ideally be in the service layer, throwing a specific CustomException
+            throw new CustomException(ErrorType.EMAIL_ALREADY_EXISTS, "해당 이메일은 이미 사용 중입니다.");
         }
+        String code = emailService.joinEmail(request.email()); // Can throw CustomException for send failure
+        this.redisService.saveEmailCode(request.email(), code);
+        EmailSendResponse response = new EmailSendResponse("인증 코드가 이메일로 발송되었습니다.");
+        return ResponseEntity.ok(ApiResponse.success(response, "이메일 인증 코드 발송 성공"));
     }
 
     @Override
     @PostMapping("/private/customEmailSend")
-    public ResponseEntity<EmailSendResponse> sendCustomEmail(@RequestBody @Valid CustomEmailRequest request) {
-        try {
-            if (request.email() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new EmailSendResponse("email is blank"));
-            }
-            if (request.content() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new EmailSendResponse("content is blank"));
-            }
-            emailService.sendCustomEmail(request);
-            return ResponseEntity.ok(new EmailSendResponse("custom email send success"));
-        } catch (Exception e) {
-            log.error("custom email send error : ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailSendResponse("custom email send error"));
+    public ResponseEntity<ApiResponse<EmailSendResponse>> sendCustomEmail(@RequestBody @Valid CustomEmailRequest request) {
+        // Basic validation for blank fields, can be enhanced with @NotBlank in DTO
+        if (request.email() == null || request.email().isBlank()) {
+            throw new CustomException(ErrorType.INVALID_REQUEST_BODY, "이메일 주소는 비어있을 수 없습니다.");
         }
+        if (request.content() == null || request.content().isBlank()) {
+            throw new CustomException(ErrorType.INVALID_REQUEST_BODY, "이메일 내용은 비어있을 수 없습니다.");
+        }
+        emailService.sendCustomEmail(request); // Assume this throws CustomException on failure
+        EmailSendResponse response = new EmailSendResponse("커스텀 이메일이 성공적으로 발송되었습니다.");
+        return ResponseEntity.ok(ApiResponse.success(response, "커스텀 이메일 발송 성공"));
     }
 
     @PostMapping("/public/emailCheck")
-    public ResponseEntity<EmailCheckResponse> emailCheck(@RequestBody @Valid EmailCheckDto checkdto) {
+    public ResponseEntity<ApiResponse<EmailCheckResponse>> emailCheck(@RequestBody @Valid EmailCheckDto checkdto) {
         boolean isValid = redisService.checkEmailCode(checkdto.email(), checkdto.code());
         if (isValid) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new EmailCheckResponse("email code is valid"));
+            EmailCheckResponse response = new EmailCheckResponse("이메일 인증 코드가 유효합니다.");
+            return ResponseEntity.ok(ApiResponse.success(response, "이메일 코드 확인 성공"));
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new EmailCheckResponse("email code is invalid"));
+            // No need to return a body here, GlobalExceptionHandler will handle it.
+            throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증 코드가 유효하지 않습니다.");
         }
     }
 
     @Override
     @PostMapping("/protected/sendEmailPassword")
-    public ResponseEntity<EmailSendResponse> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails) {
-        try {
-            String userId = principalDetails.getUserId();
-            String email = userService.getEmailByUserId(userId);
-            String temporalPassword = emailService.sendTemporalPassword(email);
-            userService.UpdateUserPassword(userId, temporalPassword);
-            return ResponseEntity.status(HttpStatus.OK).body(new EmailSendResponse("A temporary password has been sent to your email"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new EmailSendResponse("error occurred while sending an temporary password"));
-        }
+    public ResponseEntity<ApiResponse<EmailSendResponse>> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        String userId = principalDetails.getUserId();
+        // userService.getEmailByUserId might throw UserNotFoundException (CustomException)
+        String email = userService.getEmailByUserId(userId);
+        // emailService.sendTemporalPassword might throw EmailSendException (CustomException)
+        String temporalPassword = emailService.sendTemporalPassword(email);
+        // userService.UpdateUserPassword might throw UserUpdateFailedException (CustomException)
+        userService.UpdateUserPassword(userId, temporalPassword);
+        EmailSendResponse response = new EmailSendResponse("임시 비밀번호가 이메일로 발송되었습니다.");
+        return ResponseEntity.ok(ApiResponse.success(response, "임시 비밀번호 발송 성공"));
     }
 
     @Override
     @PostMapping("/public/findPassWithEmail")
-    public ResponseEntity<EmailSendResponse> findPassWithEmail(@RequestBody @Valid EmailFindByIdRequest emailFindById) {
-        try {
-            String email = userService.getEmailByUserId(emailFindById.userId());
-            String temporalPassword = emailService.sendTemporalPassword(email);
-            userService.UpdateUserPassword(emailFindById.userId(), temporalPassword);
-            return ResponseEntity.status(HttpStatus.OK).body(new EmailSendResponse("A temporary password has been sent to your email"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailSendResponse("Failed to send temporary password"));
-        }
+    public ResponseEntity<ApiResponse<EmailSendResponse>> findPassWithEmail(@RequestBody @Valid EmailFindByIdRequest emailFindById) {
+        // Similar to sendTemporaryPasswordToAuthenticatedUser, service methods should throw CustomExceptions
+        String email = userService.getEmailByUserId(emailFindById.userId());
+        String temporalPassword = emailService.sendTemporalPassword(email);
+        userService.UpdateUserPassword(emailFindById.userId(), temporalPassword);
+        EmailSendResponse response = new EmailSendResponse("임시 비밀번호가 이메일로 발송되었습니다.");
+        return ResponseEntity.ok(ApiResponse.success(response, "아이디로 비밀번호 찾기 - 임시 비밀번호 발송 성공"));
     }
 }

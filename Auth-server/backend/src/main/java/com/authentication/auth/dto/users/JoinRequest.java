@@ -29,16 +29,20 @@ public record JoinRequest (
     String email,
     
     @Schema(description = "사용자 역할", example = "USER", defaultValue = "USER")
-    String role
+    String role,
+
+    @Schema(description = "이메일 인증 코드", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "이메일 인증 코드는 필수입니다")
+    String emailAuthCode
 ) {
     /**
      * 기본 프로필 이미지를 사용하는 팩토리 메서드
      */
     public static JoinRequest of(
             String userId, String userPw,
-            String email, String role) {
+            String email, String role, String emailAuthCode) {
         return new JoinRequest(
-                userId, userPw, email, role);
+                userId, userPw, email, role, emailAuthCode);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.authentication.auth.controller;
 
 import com.authentication.auth.dto.diary.*;
+import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.service.diary.DiaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,20 +32,12 @@ public class DiaryController {
      */
     @PostMapping
     @Operation(summary = "다이어리 생성", description = "새로운 다이어리를 생성하고 AI 분석을 수행합니다.")
-    public ResponseEntity<DiaryResponse> createDiary(
+    public ResponseEntity<ApiResponse<DiaryResponse>> createDiary(
             @Valid @RequestBody DiaryCreateRequest request) {
-        try {
-            Long userId = getCurrentUserId();
-            DiaryResponse response = diaryService.createDiary(userId, request);
-            log.info("다이어리 생성 성공 - userId: {}, diaryId: {}", userId, response.id());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 생성 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 생성 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        DiaryResponse response = diaryService.createDiary(userId, request);
+        log.info("다이어리 생성 성공 - userId: {}, diaryId: {}", userId, response.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "다이어리가 성공적으로 생성되었습니다."));
     }
 
     /**
@@ -52,21 +45,13 @@ public class DiaryController {
      */
     @GetMapping
     @Operation(summary = "다이어리 목록 조회", description = "사용자의 다이어리 목록을 페이징으로 조회합니다.")
-    public ResponseEntity<Page<DiaryListItem>> getDiaries(
+    public ResponseEntity<ApiResponse<Page<DiaryListItem>>> getDiaries(
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        try {
-            Long userId = getCurrentUserId();
-            Pageable pageable = PageRequest.of(page, size);
-            Page<DiaryListItem> diaries = diaryService.getDiaries(userId, pageable);
-            return ResponseEntity.ok(diaries);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 목록 조회 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 목록 조회 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DiaryListItem> diaries = diaryService.getDiaries(userId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(diaries, "다이어리 목록이 성공적으로 조회되었습니다."));
     }
 
     /**
@@ -74,19 +59,11 @@ public class DiaryController {
      */
     @GetMapping("/{diaryId}")
     @Operation(summary = "다이어리 상세 조회", description = "특정 다이어리의 상세 정보를 조회합니다.")
-    public ResponseEntity<DiaryDetailResponse> getDiary(
+    public ResponseEntity<ApiResponse<DiaryDetailResponse>> getDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId) {
-        try {
-            Long userId = getCurrentUserId();
-            DiaryDetailResponse diary = diaryService.getDiary(userId, diaryId);
-            return ResponseEntity.ok(diary);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 상세 조회 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 상세 조회 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        DiaryDetailResponse diary = diaryService.getDiary(userId, diaryId);
+        return ResponseEntity.ok(ApiResponse.success(diary, "다이어리 상세 정보가 성공적으로 조회되었습니다."));
     }
 
     /**
@@ -94,21 +71,13 @@ public class DiaryController {
      */
     @PutMapping("/{diaryId}")
     @Operation(summary = "다이어리 수정", description = "다이어리를 수정하고 AI 재분석을 수행합니다.")
-    public ResponseEntity<DiaryResponse> updateDiary(
+    public ResponseEntity<ApiResponse<DiaryResponse>> updateDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId,
             @Valid @RequestBody DiaryUpdateRequest request) {
-        try {
-            Long userId = getCurrentUserId();
-            DiaryResponse response = diaryService.updateDiary(userId, diaryId, request);
-            log.info("다이어리 수정 성공 - userId: {}, diaryId: {}", userId, diaryId);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 수정 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 수정 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        DiaryResponse response = diaryService.updateDiary(userId, diaryId, request);
+        log.info("다이어리 수정 성공 - userId: {}, diaryId: {}", userId, diaryId);
+        return ResponseEntity.ok(ApiResponse.success(response, "다이어리가 성공적으로 수정되었습니다."));
     }
 
     /**
@@ -116,20 +85,12 @@ public class DiaryController {
      */
     @DeleteMapping("/{diaryId}")
     @Operation(summary = "다이어리 삭제", description = "특정 다이어리를 삭제합니다.")
-    public ResponseEntity<Void> deleteDiary(
+    public ResponseEntity<ApiResponse<Void>> deleteDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId) {
-        try {
-            Long userId = getCurrentUserId();
-            diaryService.deleteDiary(userId, diaryId);
-            log.info("다이어리 삭제 성공 - userId: {}, diaryId: {}", userId, diaryId);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 삭제 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 삭제 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        diaryService.deleteDiary(userId, diaryId);
+        log.info("다이어리 삭제 성공 - userId: {}, diaryId: {}", userId, diaryId);
+        return ResponseEntity.ok(ApiResponse.success(null, "다이어리가 성공적으로 삭제되었습니다."));
     }
 
     /**
@@ -137,18 +98,10 @@ public class DiaryController {
      */
     @GetMapping("/stats")
     @Operation(summary = "다이어리 통계 조회", description = "사용자의 다이어리 통계를 조회합니다.")
-    public ResponseEntity<DiaryService.DiaryStatsResponse> getDiaryStats() {
-        try {
-            Long userId = getCurrentUserId();
-            DiaryService.DiaryStatsResponse stats = diaryService.getDiaryStats(userId);
-            return ResponseEntity.ok(stats);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 통계 조회 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 통계 조회 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<ApiResponse<DiaryService.DiaryStatsResponse>> getDiaryStats() {
+        Long userId = getCurrentUserId();
+        DiaryService.DiaryStatsResponse stats = diaryService.getDiaryStats(userId);
+        return ResponseEntity.ok(ApiResponse.success(stats, "다이어리 통계가 성공적으로 조회되었습니다."));
     }
 
     /**
@@ -156,22 +109,14 @@ public class DiaryController {
      */
     @GetMapping("/search")
     @Operation(summary = "다이어리 검색", description = "키워드로 다이어리를 검색합니다.")
-    public ResponseEntity<Page<DiaryListItem>> searchDiaries(
+    public ResponseEntity<ApiResponse<Page<DiaryListItem>>> searchDiaries(
             @Parameter(description = "검색 키워드") @RequestParam String keyword,
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        try {
-            Long userId = getCurrentUserId();
-            Pageable pageable = PageRequest.of(page, size);
-            Page<DiaryListItem> diaries = diaryService.searchDiaries(userId, keyword, pageable);
-            return ResponseEntity.ok(diaries);
-        } catch (IllegalArgumentException e) {
-            log.error("다이어리 검색 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("다이어리 검색 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DiaryListItem> diaries = diaryService.searchDiaries(userId, keyword, pageable);
+        return ResponseEntity.ok(ApiResponse.success(diaries, "다이어리 검색 결과가 성공적으로 조회되었습니다."));
     }
 
     /**
@@ -179,21 +124,13 @@ public class DiaryController {
      */
     @GetMapping("/negative")
     @Operation(summary = "부정적인 다이어리 조회", description = "부정적인 감정의 다이어리만 조회합니다.")
-    public ResponseEntity<Page<DiaryListItem>> getNegativeDiaries(
+    public ResponseEntity<ApiResponse<Page<DiaryListItem>>> getNegativeDiaries(
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        try {
-            Long userId = getCurrentUserId();
-            Pageable pageable = PageRequest.of(page, size);
-            Page<DiaryListItem> diaries = diaryService.getNegativeDiaries(userId, pageable);
-            return ResponseEntity.ok(diaries);
-        } catch (IllegalArgumentException e) {
-            log.error("부정적인 다이어리 조회 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("부정적인 다이어리 조회 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long userId = getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DiaryListItem> diaries = diaryService.getNegativeDiaries(userId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(diaries, "부정적인 다이어리 목록이 성공적으로 조회되었습니다."));
     }
 
     /**
@@ -202,6 +139,7 @@ public class DiaryController {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            // TODO: Consider throwing CustomException(ErrorType.UNAUTHORIZED_USER)
             throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
         }
         
@@ -210,7 +148,8 @@ public class DiaryController {
         try {
             return Long.parseLong(authentication.getName());
         } catch (NumberFormatException e) {
+            // TODO: Consider throwing CustomException(ErrorType.INVALID_USER_ID_FORMAT)
             throw new IllegalArgumentException("유효하지 않은 사용자 ID입니다.");
         }
     }
-} 
+}

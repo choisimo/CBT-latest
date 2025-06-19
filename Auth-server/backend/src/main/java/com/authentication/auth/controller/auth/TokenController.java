@@ -3,13 +3,16 @@ package com.authentication.auth.controller.auth;
 import com.authentication.auth.api.docs.TokenApi;
 import com.authentication.auth.dto.users.LoginRequest;
 import com.authentication.auth.dto.users.LoginResponse;
+import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.dto.token.TokenRefreshRequest;
+import com.authentication.auth.dto.token.TokenRefreshResponse; // Assuming this DTO exists for refresh response
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.service.token.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,14 +31,9 @@ public class TokenController implements TokenApi {
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager; // Injected AuthenticationManager
 
-    // Constructor removed as @RequiredArgsConstructor will generate it.
-    // public TokenController(TokenService tokenService){
-    // this.tokenService = tokenService;
-    // }
-
     @Override
     @PostMapping("/login") // Ensuring PostMapping is present as per standard practices, overriding from interface
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
         log.info("Login attempt for user: {}", loginRequest.userId());
 
         // Create authentication token
@@ -48,18 +46,23 @@ public class TokenController implements TokenApi {
         // If authentication is successful, proceed with post-login actions
         LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
 
-        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
     }
 
     @Override
     @PostMapping("/refresh") // Ensuring PostMapping is present
-    public ResponseEntity<?> refreshToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody TokenRefreshRequest request) throws IOException {
+    public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody TokenRefreshRequest request) throws IOException {
 
         if (request == null || request.expiredToken() == null || request.provider() == null) {
-            // This basic validation can remain, or be part of the service layer
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Invalid refresh token request payload");
+            throw new CustomException(ErrorType.INVALID_REQUEST_BODY, "유효하지 않은 토큰 갱신 요청입니다.");
         }
-
-        return tokenService.refreshToken(httpRequest, httpResponse, request);
+        // Assuming tokenService.refreshToken now returns TokenRefreshResponse directly
+        // and handles potential exceptions by throwing CustomException
+        TokenRefreshResponse refreshResponse = tokenService.refreshToken(httpRequest, httpResponse, request);
+        
+        // If tokenService.refreshToken returns ResponseEntity<TokenRefreshResponse> or ResponseEntity<String>
+        // then the logic here needs to be adjusted to extract the body and wrap it with ApiResponse.
+        // For now, we assume it returns the DTO directly.
+        return ResponseEntity.ok(ApiResponse.success(refreshResponse, "토큰이 성공적으로 갱신되었습니다."));
     }
 }

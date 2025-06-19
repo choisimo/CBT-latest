@@ -3,6 +3,8 @@ package com.authentication.auth.service.diary;
 import com.authentication.auth.domain.Diary;
 import com.authentication.auth.domain.User;
 import com.authentication.auth.dto.diary.*;
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.repository.DiaryRepository;
 import com.authentication.auth.repository.UserRepository;
 import com.authentication.auth.service.ai.AiClientService;
@@ -34,7 +36,7 @@ public class DiaryService {
         log.info("다이어리 생성 요청 - userId: {}, title: {}", userId, request.title());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         // 다이어리 엔터티 생성
         Diary diary = Diary.builder()
@@ -48,6 +50,10 @@ public class DiaryService {
         Diary savedDiary = diaryRepository.save(diary);
 
         // AI 분석 비동기 처리
+        // TODO: 비동기 AI 분석 실패 시 사용자에게 알림을 주거나, 재시도 로직, 또는 실패 상태를 기록하는 등의 명확한 오류 처리 정책 필요.
+        // 현재는 로그만 남기고 있으며, 이는 사용자 경험에 부정적일 수 있음.
+        // 실패 시 CustomException(ErrorType.AI_ANALYSIS_FAILED, error.getMessage()) 발생을 고려할 수 있으나,
+        // 비동기 흐름을 방해하지 않도록 주의해야 함. (예: 별도의 알림 채널, 상태 업데이트)
         aiClientService.analyzeDiary(request.content())
                 .subscribe(
                     result -> {
@@ -72,7 +78,7 @@ public class DiaryService {
         log.info("다이어리 목록 조회 - userId: {}, page: {}", userId, pageable.getPageNumber());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserOrderByCreatedAtDesc(user, pageable)
                 .map(DiaryListItem::fromEntity);
@@ -85,10 +91,10 @@ public class DiaryService {
         log.info("다이어리 상세 조회 - userId: {}, diaryId: {}", userId, diaryId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
-                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.DIARY_NOT_FOUND));
 
         return DiaryDetailResponse.fromEntity(diary);
     }
@@ -101,10 +107,10 @@ public class DiaryService {
         log.info("다이어리 수정 - userId: {}, diaryId: {}", userId, diaryId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
-                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.DIARY_NOT_FOUND));
 
         // 다이어리 정보 업데이트
         if (request.title() != null) {
@@ -114,6 +120,7 @@ public class DiaryService {
             diary.setContent(request.content());
             
             // 내용이 변경된 경우 AI 재분석
+            // TODO: 비동기 AI 분석 실패 시 오류 처리 정책 참고 (createDiary와 동일)
             aiClientService.analyzeDiary(request.content())
                     .subscribe(
                         result -> {
@@ -139,10 +146,10 @@ public class DiaryService {
         log.info("다이어리 삭제 - userId: {}, diaryId: {}", userId, diaryId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
-                .orElseThrow(() -> new IllegalArgumentException("다이어리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.DIARY_NOT_FOUND));
 
         diaryRepository.delete(diary);
         log.info("다이어리 삭제 완료 - diaryId: {}", diaryId);
@@ -155,7 +162,7 @@ public class DiaryService {
         log.info("다이어리 통계 조회 - userId: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         long totalCount = diaryRepository.countByUser(user);
         long negativeCount = diaryRepository.findByUserAndIsNegativeTrueOrderByCreatedAtDesc(user, Pageable.unpaged()).getTotalElements();
@@ -171,7 +178,7 @@ public class DiaryService {
         log.info("다이어리 검색 - userId: {}, keyword: {}", userId, keyword);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserAndTitleContaining(user, keyword, pageable)
                 .map(DiaryListItem::fromEntity);
@@ -184,7 +191,7 @@ public class DiaryService {
         log.info("부정적 다이어리 조회 - userId: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserAndIsNegativeTrueOrderByCreatedAtDesc(user, pageable)
                 .map(DiaryListItem::fromEntity);
@@ -198,4 +205,4 @@ public class DiaryService {
         long positiveCount,
         long negativeCount
     ) {}
-} 
+}

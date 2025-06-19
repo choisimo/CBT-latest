@@ -51,15 +51,17 @@ public class UsersController implements UserApi {
     @PostMapping("/public/join")
     public ResponseEntity<ApiResponse<String>> join(@RequestBody JoinRequest request) {
         // 이메일 인증 코드 확인
-        // TODO: request.code() was removed. Email verification logic needs to be revisited.
-        // if (!redisService.checkEmailCode(request.email(), ???)) {
-        //     throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증이 완료되지 않았습니다.");
-        // }
+        if (!redisService.checkEmailCode(request.email(), request.emailAuthCode())) {
+            throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증 코드가 유효하지 않거나 만료되었습니다.");
+        }
         
-        // 회원가입 처리 (예외는 GlobalExceptionHandler에서 처리)
-        userService.join(request);
+        // 회원가입 처리 (사용자는 "WAITING" 상태로 저장됨)
+        com.authentication.auth.domain.User newUser = userService.join(request);
         
-        return ResponseEntity.ok(ApiResponse.success(null, "회원가입이 성공적으로 완료되었습니다."));
+        // 사용자 활성화 및 인증 코드 삭제
+        userService.activateUser(newUser.getUserName(), newUser.getEmail());
+        
+        return ResponseEntity.ok(ApiResponse.success(null, "회원가입 및 이메일 인증이 성공적으로 완료되었습니다."));
     }
 
     @Override

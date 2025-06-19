@@ -48,13 +48,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
         log.error("File size exceeds maximum limit: {}", e.getMessage());
         
-        // Assuming ErrorType has a FILE_TOO_LARGE enum constant
         ApiResponse<Map<String, Object>> response = ApiResponse.error(
-            ErrorType.FILE_TOO_LARGE, 
-            Map.of("details", "File size exceeds maximum limit")
+            ErrorType.MAX_FILE_SIZE_EXCEEDED, 
+            Map.of("details", ErrorType.MAX_FILE_SIZE_EXCEEDED.getMessage())
         );
         
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(ErrorType.MAX_FILE_SIZE_EXCEEDED.getStatus()).body(response);
     }
 
     /**
@@ -65,18 +64,18 @@ public class GlobalExceptionHandler {
         log.error("Validation failed: {}", e.getMessage());
         
         BindingResult bindingResult = e.getBindingResult();
-        List<String> errors = new ArrayList<>();
+        List<String> errorMessages = new ArrayList<>();
         
         for (FieldError fieldError : bindingResult.getFieldErrors()) {
-            errors.add(fieldError.getField() + ": " + fieldError.getDefaultMessage());
+            errorMessages.add(fieldError.getField() + ": " + fieldError.getDefaultMessage());
         }
         
         ApiResponse<Map<String, Object>> response = ApiResponse.error(
-            ErrorType.GENERAL_ERROR, // Or a more specific ErrorType.VALIDATION_ERROR if available
-            Map.of("details", "Validation failed", "errors", errors)
+            ErrorType.INVALID_REQUEST_BODY,
+            Map.of("details", "Validation failed", "errors", errorMessages)
         );
         
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(ErrorType.INVALID_REQUEST_BODY.getStatus()).body(response);
     }
 
     /**

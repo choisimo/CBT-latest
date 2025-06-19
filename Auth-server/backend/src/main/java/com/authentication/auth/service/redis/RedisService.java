@@ -270,4 +270,32 @@ public class RedisService {
     public boolean findRToken(String userId, String provider, String refreshToken) {
         return isRTokenExist(userId, provider, refreshToken);
     }
+
+    /**
+     * 이메일 인증 코드 삭제
+     * 
+     * @param email 이메일
+     * @return 삭제 성공 여부
+     */
+    @Transactional
+    public boolean deleteEmailCode(String email) {
+        if (email == null || email.isEmpty()) {
+            log.error("삭제할 이메일 인증 코드의 이메일이 누락되었습니다");
+            return false;
+        }
+        try {
+            String redisKey = emailCodeToRedisKey(email);
+            Boolean deleted = redisTemplate.delete(redisKey);
+            if (Boolean.TRUE.equals(deleted)) {
+                log.info("이메일 인증 코드 삭제 성공: 이메일={}", email);
+                return true;
+            } else {
+                log.warn("삭제할 이메일 인증 코드가 존재하지 않거나 삭제에 실패했습니다: 이메일={}", email);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("이메일 인증 코드 삭제 실패: 이메일={}", email, e);
+            return false;
+        }
+    }
 }
