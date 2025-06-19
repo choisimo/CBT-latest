@@ -32,10 +32,10 @@ public class DiaryService {
      * 다이어리 생성 (AI 분석 포함)
      */
     @Transactional
-    public DiaryResponse createDiary(Long userId, DiaryCreateRequest request) {
-        log.info("다이어리 생성 요청 - userId: {}, title: {}", userId, request.title());
+    public DiaryResponse createDiary(String email, DiaryCreateRequest request) {
+        log.info("다이어리 생성 요청 - email: {}, title: {}", email, request.title());
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         // 다이어리 엔터티 생성
@@ -74,10 +74,10 @@ public class DiaryService {
     /**
      * 다이어리 목록 조회 (페이징)
      */
-    public Page<DiaryListItem> getDiaries(Long userId, Pageable pageable) {
-        log.info("다이어리 목록 조회 - userId: {}, page: {}", userId, pageable.getPageNumber());
+    public Page<DiaryListItem> getDiaries(String email, Pageable pageable) {
+        log.info("다이어리 목록 조회 - email: {}, page: {}", email, pageable.getPageNumber());
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserOrderByCreatedAtDesc(user, pageable)
@@ -87,10 +87,10 @@ public class DiaryService {
     /**
      * 다이어리 상세 조회
      */
-    public DiaryDetailResponse getDiary(Long userId, Long diaryId) {
-        log.info("다이어리 상세 조회 - userId: {}, diaryId: {}", userId, diaryId);
+    public DiaryDetailResponse getDiary(String email, Long diaryId) {
+        log.info("다이어리 상세 조회 - email: {}, diaryId: {}", email, diaryId);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
@@ -103,10 +103,10 @@ public class DiaryService {
      * 다이어리 수정
      */
     @Transactional
-    public DiaryResponse updateDiary(Long userId, Long diaryId, DiaryUpdateRequest request) {
-        log.info("다이어리 수정 - userId: {}, diaryId: {}", userId, diaryId);
+    public DiaryResponse updateDiary(String email, Long diaryId, DiaryUpdateRequest request) {
+        log.info("다이어리 수정 - email: {}, diaryId: {}", email, diaryId);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
@@ -142,10 +142,10 @@ public class DiaryService {
      * 다이어리 삭제
      */
     @Transactional
-    public void deleteDiary(Long userId, Long diaryId) {
-        log.info("다이어리 삭제 - userId: {}, diaryId: {}", userId, diaryId);
+    public void deleteDiary(String email, Long diaryId) {
+        log.info("다이어리 삭제 - email: {}, diaryId: {}", email, diaryId);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         Diary diary = diaryRepository.findByIdAndUser(diaryId, user)
@@ -158,10 +158,10 @@ public class DiaryService {
     /**
      * 사용자별 다이어리 통계
      */
-    public DiaryStatsResponse getDiaryStats(Long userId) {
-        log.info("다이어리 통계 조회 - userId: {}", userId);
+    public DiaryStatsResponse getDiaryStats(String email) {
+        log.info("다이어리 통계 조회 - email: {}", email);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         long totalCount = diaryRepository.countByUser(user);
@@ -174,10 +174,10 @@ public class DiaryService {
     /**
      * 키워드로 다이어리 검색
      */
-    public Page<DiaryListItem> searchDiaries(Long userId, String keyword, Pageable pageable) {
-        log.info("다이어리 검색 - userId: {}, keyword: {}", userId, keyword);
+    public Page<DiaryListItem> searchDiaries(String email, String keyword, Pageable pageable) {
+        log.info("다이어리 검색 - email: {}, keyword: {}", email, keyword);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserAndTitleContaining(user, keyword, pageable)
@@ -187,10 +187,10 @@ public class DiaryService {
     /**
      * 부정적인 감정의 다이어리만 조회
      */
-    public Page<DiaryListItem> getNegativeDiaries(Long userId, Pageable pageable) {
-        log.info("부정적 다이어리 조회 - userId: {}", userId);
+    public Page<DiaryListItem> getNegativeDiaries(String email, Pageable pageable) {
+        log.info("부정적 다이어리 조회 - email: {}", email);
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
         return diaryRepository.findByUserAndIsNegativeTrueOrderByCreatedAtDesc(user, pageable)

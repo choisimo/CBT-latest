@@ -14,11 +14,7 @@ import java.util.Date;
  * 회원 가입 요청 정보를 담는 불변 레코드
  */
 public record JoinRequest (
-    @Schema(description = "사용자 ID (로그인 시 사용)", example = "newuser123", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "사용자 ID는 필수입니다") 
-    @Size(min = 4, max = 20, message = "사용자 ID는 4~20자 사이여야 합니다")
-    String userId,
-    
+
     @Schema(description = "사용자 비밀번호", example = "P@sswOrd123!", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "비밀번호는 필수입니다")
     @Size(min = 8, message = "비밀번호는 최소 8자 이상이어야 합니다")
@@ -27,9 +23,6 @@ public record JoinRequest (
     @Schema(description = "사용자 이메일 주소", example = "user@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
     @Email(message = "이메일 형식이 올바르지 않습니다")
     String email,
-    
-    @Schema(description = "사용자 역할", example = "USER", defaultValue = "USER")
-    String role,
 
     @Schema(description = "이메일 인증 코드", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "이메일 인증 코드는 필수입니다")
@@ -39,10 +32,11 @@ public record JoinRequest (
      * 기본 프로필 이미지를 사용하는 팩토리 메서드
      */
     public static JoinRequest of(
-            String userId, String userPw,
-            String email, String role, String emailAuthCode) {
+            String userPw,
+            String email,
+            String emailAuthCode) {
         return new JoinRequest(
-                userId, userPw, email, role, emailAuthCode);
+                userPw, email, emailAuthCode);
     }
 
     /**
@@ -50,10 +44,9 @@ public record JoinRequest (
      */
     public User toEntity(String encodedPassword) {
         return User.builder()
-                .userName(this.userId)
+                .userName(this.email.split("@")[0])
                 .password(encodedPassword)
                 .email(this.email)
-                .userRole(this.role != null ? this.role : "USER")
                 .isPremium(false)
                 .isActive("WAITING")
                 .build();
@@ -63,7 +56,7 @@ public record JoinRequest (
      * 유효성 검사
      */
     public boolean isValid() {
-        return userId != null && !userId.isBlank() &&
-               userPw != null && !userPw.isBlank();
+        return userPw != null && !userPw.isBlank() &&
+               email != null && !email.isBlank();
     }
 }

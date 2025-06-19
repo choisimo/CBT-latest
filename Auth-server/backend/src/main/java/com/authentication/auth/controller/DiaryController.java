@@ -34,9 +34,9 @@ public class DiaryController {
     @Operation(summary = "다이어리 생성", description = "새로운 다이어리를 생성하고 AI 분석을 수행합니다.")
     public ResponseEntity<ApiResponse<DiaryResponse>> createDiary(
             @Valid @RequestBody DiaryCreateRequest request) {
-        Long userId = getCurrentUserId();
-        DiaryResponse response = diaryService.createDiary(userId, request);
-        log.info("다이어리 생성 성공 - userId: {}, diaryId: {}", userId, response.id());
+        String email = getCurrentUserEmail();
+        DiaryResponse response = diaryService.createDiary(email, request);
+        log.info("다이어리 생성 성공 - email: {}, diaryId: {}", email, response.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "다이어리가 성공적으로 생성되었습니다."));
     }
 
@@ -48,9 +48,9 @@ public class DiaryController {
     public ResponseEntity<ApiResponse<Page<DiaryListItem>>> getDiaries(
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        Long userId = getCurrentUserId();
+        String email = getCurrentUserEmail();
         Pageable pageable = PageRequest.of(page, size);
-        Page<DiaryListItem> diaries = diaryService.getDiaries(userId, pageable);
+        Page<DiaryListItem> diaries = diaryService.getDiaries(email, pageable);
         return ResponseEntity.ok(ApiResponse.success(diaries, "다이어리 목록이 성공적으로 조회되었습니다."));
     }
 
@@ -61,8 +61,8 @@ public class DiaryController {
     @Operation(summary = "다이어리 상세 조회", description = "특정 다이어리의 상세 정보를 조회합니다.")
     public ResponseEntity<ApiResponse<DiaryDetailResponse>> getDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId) {
-        Long userId = getCurrentUserId();
-        DiaryDetailResponse diary = diaryService.getDiary(userId, diaryId);
+        String email = getCurrentUserEmail();
+        DiaryDetailResponse diary = diaryService.getDiary(email, diaryId);
         return ResponseEntity.ok(ApiResponse.success(diary, "다이어리 상세 정보가 성공적으로 조회되었습니다."));
     }
 
@@ -74,9 +74,9 @@ public class DiaryController {
     public ResponseEntity<ApiResponse<DiaryResponse>> updateDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId,
             @Valid @RequestBody DiaryUpdateRequest request) {
-        Long userId = getCurrentUserId();
-        DiaryResponse response = diaryService.updateDiary(userId, diaryId, request);
-        log.info("다이어리 수정 성공 - userId: {}, diaryId: {}", userId, diaryId);
+        String email = getCurrentUserEmail();
+        DiaryResponse response = diaryService.updateDiary(email, diaryId, request);
+        log.info("다이어리 수정 성공 - email: {}, diaryId: {}", email, diaryId);
         return ResponseEntity.ok(ApiResponse.success(response, "다이어리가 성공적으로 수정되었습니다."));
     }
 
@@ -87,9 +87,9 @@ public class DiaryController {
     @Operation(summary = "다이어리 삭제", description = "특정 다이어리를 삭제합니다.")
     public ResponseEntity<ApiResponse<Void>> deleteDiary(
             @Parameter(description = "다이어리 ID") @PathVariable Long diaryId) {
-        Long userId = getCurrentUserId();
-        diaryService.deleteDiary(userId, diaryId);
-        log.info("다이어리 삭제 성공 - userId: {}, diaryId: {}", userId, diaryId);
+        String email = getCurrentUserEmail();
+        diaryService.deleteDiary(email, diaryId);
+        log.info("다이어리 삭제 성공 - email: {}, diaryId: {}", email, diaryId);
         return ResponseEntity.ok(ApiResponse.success(null, "다이어리가 성공적으로 삭제되었습니다."));
     }
 
@@ -99,8 +99,8 @@ public class DiaryController {
     @GetMapping("/stats")
     @Operation(summary = "다이어리 통계 조회", description = "사용자의 다이어리 통계를 조회합니다.")
     public ResponseEntity<ApiResponse<DiaryService.DiaryStatsResponse>> getDiaryStats() {
-        Long userId = getCurrentUserId();
-        DiaryService.DiaryStatsResponse stats = diaryService.getDiaryStats(userId);
+        String email = getCurrentUserEmail();
+        DiaryService.DiaryStatsResponse stats = diaryService.getDiaryStats(email);
         return ResponseEntity.ok(ApiResponse.success(stats, "다이어리 통계가 성공적으로 조회되었습니다."));
     }
 
@@ -113,9 +113,9 @@ public class DiaryController {
             @Parameter(description = "검색 키워드") @RequestParam String keyword,
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        Long userId = getCurrentUserId();
+        String email = getCurrentUserEmail();
         Pageable pageable = PageRequest.of(page, size);
-        Page<DiaryListItem> diaries = diaryService.searchDiaries(userId, keyword, pageable);
+        Page<DiaryListItem> diaries = diaryService.searchDiaries(email, keyword, pageable);
         return ResponseEntity.ok(ApiResponse.success(diaries, "다이어리 검색 결과가 성공적으로 조회되었습니다."));
     }
 
@@ -127,29 +127,21 @@ public class DiaryController {
     public ResponseEntity<ApiResponse<Page<DiaryListItem>>> getNegativeDiaries(
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size) {
-        Long userId = getCurrentUserId();
+        String email = getCurrentUserEmail();
         Pageable pageable = PageRequest.of(page, size);
-        Page<DiaryListItem> diaries = diaryService.getNegativeDiaries(userId, pageable);
+        Page<DiaryListItem> diaries = diaryService.getNegativeDiaries(email, pageable);
         return ResponseEntity.ok(ApiResponse.success(diaries, "부정적인 다이어리 목록이 성공적으로 조회되었습니다."));
     }
 
     /**
      * 현재 로그인한 사용자 ID 추출
      */
-    private Long getCurrentUserId() {
+    private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            // TODO: Consider throwing CustomException(ErrorType.UNAUTHORIZED_USER)
             throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
         }
-        
-        // 여기서는 username이 userId라고 가정
-        // 실제 구현에서는 JWT 토큰에서 userId를 추출하는 방식으로 변경해야 할 수 있습니다.
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            // TODO: Consider throwing CustomException(ErrorType.INVALID_USER_ID_FORMAT)
-            throw new IllegalArgumentException("유효하지 않은 사용자 ID입니다.");
-        }
+        // PrincipalDetails.username 은 email 이므로 그대로 반환
+        return authentication.getName();
     }
 }

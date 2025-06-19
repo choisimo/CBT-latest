@@ -27,7 +27,12 @@ public class publicAPI {
     public boolean checkRequestAPI(HttpServletRequest request){
 
     String requestURI = request.getRequestURI();
-        log.info("Request URI: {}", requestURI); // log the request URI
+     /** 
+      * @TODO 실제 운영 환경에서는 제거할 것, 성능 최적화, 보안, 로깅 정책 등 고려 필요함
+      *  @TODO-detail : log.info()는 성능에 영향을 줄 수 있으므로, 실제 운영 환경에서는 제거할 것
+      */
+        log.info("Request URI: {}", requestURI); 
+
         return (apiEndPoints.contains(requestURI));
     }
 }

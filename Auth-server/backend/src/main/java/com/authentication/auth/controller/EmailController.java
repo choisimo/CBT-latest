@@ -76,13 +76,11 @@ public class EmailController implements EmailApi {
     @Override
     @PostMapping("/protected/sendEmailPassword")
     public ResponseEntity<ApiResponse<EmailSendResponse>> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails) {
-        String userId = principalDetails.getUserId();
-        // userService.getEmailByUserId might throw UserNotFoundException (CustomException)
-        String email = userService.getEmailByUserId(userId);
+        String email = principalDetails.getUser().getEmail();
         // emailService.sendTemporalPassword might throw EmailSendException (CustomException)
         String temporalPassword = emailService.sendTemporalPassword(email);
         // userService.UpdateUserPassword might throw UserUpdateFailedException (CustomException)
-        userService.UpdateUserPassword(userId, temporalPassword);
+        userService.UpdateUserPassword(email, temporalPassword);
         EmailSendResponse response = new EmailSendResponse("임시 비밀번호가 이메일로 발송되었습니다.");
         return ResponseEntity.ok(ApiResponse.success(response, "임시 비밀번호 발송 성공"));
     }
@@ -91,9 +89,9 @@ public class EmailController implements EmailApi {
     @PostMapping("/public/findPassWithEmail")
     public ResponseEntity<ApiResponse<EmailSendResponse>> findPassWithEmail(@RequestBody @Valid EmailFindByIdRequest emailFindById) {
         // Similar to sendTemporaryPasswordToAuthenticatedUser, service methods should throw CustomExceptions
-        String email = userService.getEmailByUserId(emailFindById.userId());
+        String email = emailFindById.email();
         String temporalPassword = emailService.sendTemporalPassword(email);
-        userService.UpdateUserPassword(emailFindById.userId(), temporalPassword);
+        userService.UpdateUserPassword(email, temporalPassword);
         EmailSendResponse response = new EmailSendResponse("임시 비밀번호가 이메일로 발송되었습니다.");
         return ResponseEntity.ok(ApiResponse.success(response, "아이디로 비밀번호 찾기 - 임시 비밀번호 발송 성공"));
     }

@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotBlank;
 
 public record EmailFindByIdRequest(
     @NotBlank
-    String userId
+    String email
 ) {}

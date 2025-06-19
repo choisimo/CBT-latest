@@ -31,7 +31,7 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
 
     @Override
     public String getUsername() {
-        return user.getUserName();
+        return user.getEmail();
     }
 
     @Override
@@ -62,8 +62,12 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
         return user.getUserName();
     }
 
+    /**
+     * @deprecated use getEmail() via getUsername() instead. This method now returns the user's email for backward compatibility.
+     */
+    @Deprecated
     public String getUserId() {
-        return String.valueOf(user.getId());
+        return user.getEmail();
     }
 
     @Override
