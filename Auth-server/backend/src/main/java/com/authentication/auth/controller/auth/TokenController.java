@@ -34,11 +34,11 @@ public class TokenController implements TokenApi {
     @Override
     @PostMapping("/login") // Ensuring PostMapping is present as per standard practices, overriding from interface
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
-        log.info("Login attempt for user: {}", loginRequest.userId());
+        log.info("Login attempt for user: {}", loginRequest.email());
 
         // Create authentication token
         UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginRequest.userId(), loginRequest.password());
+                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password());
 
         // Authenticate user
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
@@ -58,7 +58,12 @@ public class TokenController implements TokenApi {
         }
         // Assuming tokenService.refreshToken now returns TokenRefreshResponse directly
         // and handles potential exceptions by throwing CustomException
-        TokenRefreshResponse refreshResponse = tokenService.refreshToken(httpRequest, httpResponse, request);
+        ResponseEntity<?> serviceResponse = tokenService.refreshToken(httpRequest, httpResponse, request);
+        if (!serviceResponse.getStatusCode().is2xxSuccessful() || serviceResponse.getBody() == null) {
+            throw new CustomException(ErrorType.INVALID_TOKEN, "토큰 갱신에 실패했습니다.");
+        }
+        String newAccessToken = serviceResponse.getBody().toString();
+        TokenRefreshResponse refreshResponse = new TokenRefreshResponse(newAccessToken);
         
         // If tokenService.refreshToken returns ResponseEntity<TokenRefreshResponse> or ResponseEntity<String>
         // then the logic here needs to be adjusted to extract the body and wrap it with ApiResponse.

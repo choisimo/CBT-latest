@@ -112,7 +112,7 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
             log.warn("만료된 JWT 토큰입니다, uri: {}: {}", request.getRequestURI(), e.getMessage());
-            sendErrorResponse(response, ErrorType.EXPIRED_TOKEN);
+            sendErrorResponse(response, ErrorType.TOKEN_EXPIRED);
         } catch (JwtException e) {
             log.error("JWT 처리 중 오류 발생, uri: {}: {}", request.getRequestURI(), e.getMessage());
             sendErrorResponse(response, ErrorType.INVALID_TOKEN);

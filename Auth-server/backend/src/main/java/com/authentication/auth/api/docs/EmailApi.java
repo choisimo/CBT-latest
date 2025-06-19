@@ -11,12 +11,13 @@ import com.authentication.auth.dto.token.PrincipalDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import com.authentication.auth.dto.response.ApiResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,24 +30,24 @@ public interface EmailApi {
 
     @Operation(summary = "이메일 인증 코드 발송", description = "회원가입 등을 위한 이메일 인증 코드를 발송합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "이메일 전송 성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "이메일 전송 성공",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = EmailSendResponse.class),
                             examples = @ExampleObject(name = "이메일 성공 응답", value = "{\"message\": \"A temporary code has been sent to your email\"}"))),
-            @ApiResponse(responseCode = "400", description = "이미 가입된 이메일 또는 잘못된 요청",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "이미 가입된 이메일 또는 잘못된 요청",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = {
                                 @ExampleObject(name = "이미 가입된 이메일", summary = "400 Already Registered", value = "{\"timestamp\": \"2023-10-27T10:10:00Z\", \"status\": 400, \"error\": \"Bad Request\", \"message\": \"Email 'user@example.com' is already registered.\", \"path\": \"/api/public/emailSend\"}"),
                                 @ExampleObject(name = "잘못된 이메일 형식", summary = "400 Invalid Format", value = "{\"timestamp\": \"2023-10-27T10:11:00Z\", \"status\": 400, \"error\": \"Bad Request\", \"message\": \"Invalid email format provided.\", \"path\": \"/api/public/emailSend\"}")
                             })),
-            @ApiResponse(responseCode = "500", description = "이메일 전송 실패 (서버 오류)",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "이메일 전송 실패 (서버 오류)",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "서버 오류 응답", value = "{\"timestamp\": \"2023-10-27T10:12:00Z\", \"status\": 500, \"error\": \"Internal Server Error\", \"message\": \"Failed to send verification email due to a server issue.\", \"path\": \"/api/public/emailSend\"}")))
     })
     @PostMapping("/public/emailSend")
-    ResponseEntity<EmailSendResponse> sendEmailAuthCode(
+    ResponseEntity<ApiResponse<EmailSendResponse>> sendEmailAuthCode(
             @RequestBody(
                 description = "Email address to send verification code to.",
                 required = true,
@@ -76,23 +77,23 @@ public interface EmailApi {
     @Operation(summary = "커스텀 이메일 발송 (관리자/내부용)", description = "지정된 수신자에게 커스텀 제목과 내용으로 이메일을 발송합니다.",
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "이메일 전송 성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "이메일 전송 성공",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = EmailSendResponse.class))),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "이메일 전송 실패",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "이메일 전송 실패",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/private/customEmailSend")
-    ResponseEntity<EmailSendResponse> sendCustomEmail(@RequestBody CustomEmailRequest customEmailRequest);
+    ResponseEntity<ApiResponse<EmailSendResponse>> sendCustomEmail(@RequestBody CustomEmailRequest customEmailRequest);
 
     @Operation(summary = "이메일 인증 코드 확인", description = "발송된 이메일 인증 코드의 유효성을 확인합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "202", description = "이메일 코드 유효", 
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "202", description = "이메일 코드 유효", 
                          content = @Content(mediaType = "application/json", 
                                             schema = @Schema(implementation = EmailCheckResponse.class),
                                             examples = @io.swagger.v3.oas.annotations.media.ExampleObject(name = "코드 유효 응답", value = "{\"message\": \"email code is valid\"}"))),
-            @ApiResponse(responseCode = "401", description = "이메일 코드 무효 또는 만료", 
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "이메일 코드 무효 또는 만료", 
                          content = @Content(mediaType = "application/json", 
                                             schema = @Schema(implementation = ErrorResponse.class),
                                             examples = {
@@ -101,7 +102,7 @@ public interface EmailApi {
                                             }))
     })
     @PostMapping("/public/emailCheck")
-    ResponseEntity<EmailCheckResponse> emailCheck(
+    ResponseEntity<ApiResponse<EmailCheckResponse>> emailCheck(
             @RequestBody(
                 description = "Email address and verification code to check.",
                 required = true,
@@ -131,21 +132,21 @@ public interface EmailApi {
     @Operation(summary = "임시 비밀번호 이메일 전송 (인증된 사용자)", description = "현재 로그인된 사용자의 이메일로 임시 비밀번호를 발송합니다.",
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "임시 비밀번호 전송 성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "임시 비밀번호 전송 성공",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = EmailSendResponse.class))),
-            @ApiResponse(responseCode = "500", description = "임시 비밀번호 전송 실패",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "임시 비밀번호 전송 실패",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/protected/sendEmailPassword")
-    ResponseEntity<EmailSendResponse> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails);
+    ResponseEntity<ApiResponse<EmailSendResponse>> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails);
 
     @Operation(summary = "아이디로 이메일 찾아 임시 비밀번호 전송", description = "사용자 ID를 기반으로 등록된 이메일을 찾아 임시 비밀번호를 발송합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "임시 비밀번호 전송 성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "임시 비밀번호 전송 성공",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = EmailSendResponse.class))),
-            @ApiResponse(responseCode = "500", description = "임시 비밀번호 전송 실패 또는 사용자를 찾을 수 없음",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "임시 비밀번호 전송 실패 또는 사용자를 찾을 수 없음",
                          content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/public/findPassWithEmail")
-    ResponseEntity<EmailSendResponse> findPassWithEmail(@RequestBody EmailFindByIdRequest userIdRequest);
+    ResponseEntity<ApiResponse<EmailSendResponse>> findPassWithEmail(@RequestBody EmailFindByIdRequest userIdRequest);
 }

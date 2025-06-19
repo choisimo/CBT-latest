@@ -2,11 +2,11 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
     id 'io.spring.dependency-management' version '1.1.4'
-    // Lombok automatic configuration via FreeFair plugin
+    // Lombok 자동 설정을 위한 FreeFair 플러그인
     id 'io.freefair.lombok' version '8.6'
 }
 
-// Configure Lombok version for the FreeFair plugin to ensure JDK 21 compatibility
+// Lombok 버전을 명시적으로 설정 (JDK 21 호환성 보장)
 lombok {
     version.set("1.18.32")
 }
@@ -14,8 +14,13 @@ lombok {
 group = 'com.authentication'
 version = '0.0.1-SNAPSHOT'
 
+// ===================================================================
+// [수정 1] QueryDSL 관련 변수들을 파일 상단에 정의하여 스코프 문제 해결
+// ===================================================================
 def queryDslVersion = '6.1'
-def lombokVersion = '1.18.32'
+// QueryDSL이 생성할 파일들이 저장될 디렉토리를 명확하게 지정합니다.
+def querydslDir = "$buildDir/generated/querydsl"
+
 
 java {
     toolchain {
@@ -33,7 +38,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux' 
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
@@ -44,11 +49,7 @@ dependencies {
     // Database
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
-    // Lombok (compileOnly + annotationProcessor)
-    compileOnly "org.projectlombok:lombok:${lombokVersion}"
-    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
-
-    // QueryDSL (OpenFeign 포크 버전으로 수정)
+    // QueryDSL (OpenFeign 포크 버전)
     implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"
     annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:${queryDslVersion}:jakarta"
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
@@ -83,61 +84,32 @@ dependencies {
     testImplementation 'com.github.jsqlparser:jsqlparser:5.0'
 }
 
-// 컴파일 시 QueryDSL 생성 소스 출력 디렉토리 설정
-tasks.named('compileJava', JavaCompile) {
-    doFirst {
-        println '--- compileJava compiler args: ---'
-        options.getCompilerArgs().each { println it }
-        println 'annotationProcessorPath: ' + options.getAnnotationProcessorPath()?.asPath
-    }
 
-    options.getGeneratedSourceOutputDirectory().set(file("$buildDir/generated/sources/annotationProcessor/java/main"))
-    options.compilerArgs += [
-        "-Aquerydsl.generatedAnnotationClass=jakarta.annotation.Generated",
-        "-Aquerydsl.entityAccessors=MIXED"
-    ]
+// ===================================================================
+// [수정 2] QueryDSL 경로를 한 곳으로 통일하여 설정
+// ===================================================================
+
+// 1. 컴파일 시 QueryDSL 관련 소스를 생성할 디렉토리를 지정합니다.
+tasks.withType(JavaCompile) {
+    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
-tasks.named('clean', Delete) {
-    delete buildDir
-}
-
-def querydslDir = "$buildDir/generated/querydsl"
-// QueryDSL 생성 소스를 메인 소스셋에 추가
+// 2. 위에서 지정한 디렉토리를 메인 소스셋에 포함시켜 컴파일 시 Q-Type을 인식하도록 합니다.
 sourceSets {
     main {
         java {
-            srcDirs += "$buildDir/generated/sources/annotationProcessor/java/main"
+            srcDirs += [ querydslDir ]
         }
     }
 }
 
-tasks.named('compileTestJava', JavaCompile) {
-    options.compilerArgs += ["-Xlint:all", "-verbose"]
-
-    doFirst {
-        println "--- compileTestJava Compiler Arguments ---"
-        options.getCompilerArgs().each { arg -> println arg }
-        println "--- compileTestJava Classpath ---"
-        println classpath.asPath
-        println "--------------------------------------"
-    }
-
-    doLast {
-        def compileTaskClasspathFile = new File(buildDir, "compileTestJavaClasspath.txt")
-        compileTaskClasspathFile.write(classpath.asPath)
-        println "compileTestJava task's actual classpath written to: " + compileTaskClasspathFile.absolutePath
-    }
+// 3. clean 작업 시, QueryDSL이 생성한 디렉토리도 함께 삭제하도록 합니다.
+tasks.named('clean', Delete) {
+    delete querydslDir
 }
 
-task printTestClasspath {
-    doLast {
-        def classpathFile = new File(buildDir, "testClasspath.txt")
-        classpathFile.write(sourceSets.test.compileClasspath.asPath)
-        println "Test classpath has been written to: " + classpathFile.absolutePath
-    }
+// ===================================================================
+
+tasks.named('test') {
+    useJUnitPlatform()
 }

@@ -1,4 +1,4 @@
-package test.java.com.authentication.auth.repository;
+package test.java.com.authentication.auth.repository; 
 
 import com.authentication.auth.domain.User;
 import org.junit.jupiter.api.DisplayName;
