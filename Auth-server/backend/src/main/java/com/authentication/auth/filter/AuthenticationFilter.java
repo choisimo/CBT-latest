@@ -128,14 +128,14 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
         try {
             // 요청 바디에서 사용자 자격 증명 추출
             Map<String, String> credentials = objectMapper.readValue(request.getInputStream(), Map.class);
-            String username = credentials.get("username");
+            String email = credentials.get("email"); // "username"에서 "email"로 변경
             String password = credentials.get("password");
             
-            log.debug("사용자 인증 시도: {}", username);
+            log.debug("사용자 인증 시도 (email): {}", email);
             
             // 인증 토큰 생성 및 인증 시도
             UsernamePasswordAuthenticationToken authToken = 
-                new UsernamePasswordAuthenticationToken(username, password);
+                new UsernamePasswordAuthenticationToken(email, password); // username 대신 email 사용
                 
             return authenticationManager.authenticate(authToken);
         } catch (IOException e) {

@@ -106,7 +106,7 @@ public enum ErrorType {
 
     // Other/Legacy - Review if these are still needed or can be mapped to existing ones
     GENERAL_ERROR(HttpStatus.BAD_REQUEST, "일반 오류가 발생했습니다."), // Changed message to Korean
-    AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다."), // Changed message to Korean
+    AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."), // Changed message to Korean
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근이 금지되었습니다."), // Changed message to Korean
     INVALID_REQUEST_BODY(HttpStatus.BAD_REQUEST, "요청 본문이 유효하지 않습니다."), // Added for more specific client errors
     EMAIL_SEND_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."); // Added from old version

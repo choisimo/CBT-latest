@@ -19,13 +19,17 @@ public class PrincipalDetailService implements UserDetailsService {
     private final UserRepository repository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.info("username : " + username);
-        User user = repository.findByUserName(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        log.info("email : " + email);
+        User user = repository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        if (user == null) {
-            log.error("user is null");
+        // The orElseThrow above will throw if user is not found, so this check is technically redundant
+        // but kept for explicit clarity if needed in future debugging or logic extension.
+        if (user == null) { 
+            log.error("User lookup by email returned null, which should not happen if orElseThrow is working as expected: " + email);
+            // Defensive coding: ensure UsernameNotFoundException is thrown if somehow orElseThrow didn't.
+            throw new UsernameNotFoundException("User not found with email: " + email);
         }
         return new PrincipalDetails(user);
     }
