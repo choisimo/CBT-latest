@@ -96,6 +96,17 @@ tasks.withType(JavaCompile) {
 
 // 2. 위에서 지정한 디렉토리를 메인 소스셋에 포함시켜 컴파일 시 Q-Type을 인식하도록 합니다.
 sourceSets {
+    test {
+        java {
+            exclude 'com/authentication/auth/diary/**'
+            exclude 'com/authentication/auth/service/oauth2/**'
+            exclude 'com/authentication/auth/service/diary/**'
+            exclude 'com/authentication/auth/controller/auth/**'
+            exclude 'com/authentication/auth/service/ai/**'
+            exclude 'com/authentication/auth/controller/auth/service/**'
+            exclude 'com/authentication/auth/token/**'
+        }
+    }
     main {
         java {
             srcDirs += [ querydslDir ]

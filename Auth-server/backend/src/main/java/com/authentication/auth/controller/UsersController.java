@@ -59,7 +59,7 @@ public class UsersController implements UserApi {
         com.authentication.auth.domain.User newUser = userService.join(request);
         
         // 사용자 활성화 및 인증 코드 삭제
-        userService.activateUser(newUser.getUserName(), newUser.getEmail());
+        userService.activateUser(newUser.getEmail());
         
         return ResponseEntity.ok(ApiResponse.success(null, "회원가입 및 이메일 인증이 성공적으로 완료되었습니다."));
     }

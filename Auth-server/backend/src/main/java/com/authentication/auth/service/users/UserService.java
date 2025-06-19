@@ -50,13 +50,13 @@ public class UserService {
     }
 
     @Transactional
-    public void activateUser(String userId, String email) {
-        User user = repository.findByUserName(userId)
-                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + userId));
+    public void activateUser(String email) {
+        User user = repository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + email));
         
         user.activate(); // User 엔티티에 activate 메소드 추가 가정 (isActive = "ACTIVE")
         repository.save(user);
-        log.info("사용자 활성화 성공: {}", userId);
+        log.info("사용자 활성화 성공: {}", email);
 
         // 인증 코드 삭제
         boolean codeDeleted = redisService.deleteEmailCode(email);

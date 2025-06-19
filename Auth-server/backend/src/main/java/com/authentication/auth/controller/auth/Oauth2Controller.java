@@ -33,7 +33,8 @@ public class Oauth2Controller {
     public ResponseEntity<?> oauth2KakaoLogin(@RequestBody Map<String, String> requestBody,
             HttpServletResponse response) {
         log.info("/oauth2/callback/kakao");
-        return oauth2Service.handleOauth2Login(requestBody, response, "kakao");
+        var loginResponse = oauth2Service.handleOauth2Login(requestBody, response, "kakao");
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/callback/naver")
@@ -41,7 +42,8 @@ public class Oauth2Controller {
             HttpServletResponse response) {
         log.info("/oauth2/callback/naver");
         String state = UUID.randomUUID().toString();
-        return oauth2Service.handleOauth2Login(requestBody, response, "naver");
+        var loginResponse = oauth2Service.handleOauth2Login(requestBody, response, "naver");
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/callback/google")
@@ -49,7 +51,8 @@ public class Oauth2Controller {
             HttpServletResponse response) {
         log.info("/oauth2/callback/google");
         log.info("tempCode for google from client server : {}", requestBody.get("tempCode"));
-        return oauth2Service.handleOauth2Login(requestBody, response, "google");
+        var loginResponse = oauth2Service.handleOauth2Login(requestBody, response, "google");
+        return ResponseEntity.ok(loginResponse);
     }
 
     @GetMapping("/login_url/{provider}")

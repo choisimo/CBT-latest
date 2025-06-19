@@ -33,7 +33,7 @@ services:
       - MYSQL_PASSWORD=dover1234!
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./docs/DATABASE/mariadb-emotion.sql:/docker-entrypoint-initdb.d/mariadb-emotion.sql 
+      - /workspace/CBT-Diary-Work/CBT-Diary/docs/DATABASE/mariadb-emotion.sql:/docker-entrypoint-initdb.d
     networks:
       - cbt-network
     restart: unless-stopped

@@ -109,6 +109,16 @@ public enum ErrorType {
     AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."), // Changed message to Korean
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근이 금지되었습니다."), // Changed message to Korean
     INVALID_REQUEST_BODY(HttpStatus.BAD_REQUEST, "요청 본문이 유효하지 않습니다."), // Added for more specific client errors
+    EMAIL_TEMPLATE_LOAD_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 템플릿 로드에 실패했습니다."),
+    INVALID_REQUEST_PARAMETER(HttpStatus.BAD_REQUEST, "요청 파라미터가 유효하지 않습니다."),
+    OAUTH2_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, "OAuth2 응답이 유효하지 않습니다."),
+    OAUTH2_PROVIDER_ERROR(HttpStatus.BAD_GATEWAY, "OAuth2 제공자 오류가 발생했습니다."),
+    OAUTH2_INVALID_GRANT(HttpStatus.BAD_REQUEST, "구글 인증 실패 (invalid_grant)"),
+    UNSUPPORTED_OAUTH_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 OAuth 제공자입니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 리프레시 토큰입니다."),
+    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 액세스 토큰에서 사용자 ID를 추출할 수 없습니다."),
+    REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 일치하지 않습니다."),
+    TOKEN_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "토큰 생성에 실패했습니다."),
     EMAIL_SEND_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."); // Added from old version
 
 
