@@ -56,18 +56,8 @@ public class TokenController implements TokenApi {
         if (request == null || request.expiredToken() == null || request.provider() == null) {
             throw new CustomException(ErrorType.INVALID_REQUEST_BODY, "유효하지 않은 토큰 갱신 요청입니다.");
         }
-        // Assuming tokenService.refreshToken now returns TokenRefreshResponse directly
-        // and handles potential exceptions by throwing CustomException
-        ResponseEntity<?> serviceResponse = tokenService.refreshToken(httpRequest, httpResponse, request);
-        if (!serviceResponse.getStatusCode().is2xxSuccessful() || serviceResponse.getBody() == null) {
-            throw new CustomException(ErrorType.INVALID_TOKEN, "토큰 갱신에 실패했습니다.");
-        }
-        String newAccessToken = serviceResponse.getBody().toString();
-        TokenRefreshResponse refreshResponse = new TokenRefreshResponse(newAccessToken);
-        
-        // If tokenService.refreshToken returns ResponseEntity<TokenRefreshResponse> or ResponseEntity<String>
-        // then the logic here needs to be adjusted to extract the body and wrap it with ApiResponse.
-        // For now, we assume it returns the DTO directly.
+        // TokenService.refreshToken은 이제 TokenRefreshResponse DTO를 직접 반환하거나, 실패 시 CustomException을 throw 할 것으로 가정합니다.
+        TokenRefreshResponse refreshResponse = tokenService.refreshToken(httpRequest, httpResponse, request);
         return ResponseEntity.ok(ApiResponse.success(refreshResponse, "토큰이 성공적으로 갱신되었습니다."));
     }
 }

@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.FileCopyUtils;
 
 import com.authentication.auth.dto.email.CustomEmailRequest;
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.repository.UserRepository;
 
 import jakarta.mail.MessagingException;
@@ -41,7 +43,6 @@ public class EmailService {
         return result;
     }
 
-
     public String joinEmail(String email){
         String rand = randomNum();
         String from_email = sender_email;
@@ -56,14 +57,14 @@ public class EmailService {
             }
             content = content.replace("{{verificationCode}}", rand);
         } catch (IOException e) {
-            log.error("Failed to load email template for join welcome", e);
-            content = "이메일 인증 코드: " + rand; // Fallback content
+            log.error("Failed to load email template for join welcome: {}", e.getMessage());
+            // 템플릿 로드 실패 시에도 CustomException 발생
+            throw new CustomException(ErrorType.EMAIL_TEMPLATE_LOAD_FAILURE, "회원가입 이메일 템플릿 로드에 실패했습니다.");
         }
 
-        mailSend(from_email, to_email, title, content);
+        mailSend(from_email, to_email, title, content); // mailSend 내부에서 예외 처리
         return rand;
     }
-
 
     public String sendTemporalPassword(String email){
         String rand = randomNum();
@@ -79,16 +80,14 @@ public class EmailService {
             }
             content = content.replace("{{temporaryPassword}}", rand);
         } catch (IOException e) {
-            log.error("Failed to load email template for temporary password", e);
-            content = "임시 비밀번호: " + rand; // Fallback content
+            log.error("Failed to load email template for temporary password: {}", e.getMessage());
+            // 템플릿 로드 실패 시에도 CustomException 발생
+            throw new CustomException(ErrorType.EMAIL_TEMPLATE_LOAD_FAILURE, "임시 비밀번호 이메일 템플릿 로드에 실패했습니다.");
         }
 
-        mailSend(from_email, to_email, title, content);
+        mailSend(from_email, to_email, title, content); // mailSend 내부에서 예외 처리
         return rand;
     }
-
-
-
 
     public void mailSend(String from_email, String to_email, String title, String content) {
         MimeMessage message = mailSender.createMimeMessage();
@@ -97,29 +96,46 @@ public class EmailService {
             helper.setFrom(from_email);
             helper.setTo(to_email);
             helper.setSubject(title);
-            helper.setText(content, true);
+            helper.setText(content, true); // true indicates HTML content
             mailSender.send(message);
-
+            log.info("Email sent successfully to {}", to_email);
         } catch(MessagingException e){
-            log.error("messagingException", e);
+            log.error("Failed to send email to {}: {}", to_email, e.getMessage());
+            throw new CustomException(ErrorType.EMAIL_SEND_FAILURE, "이메일 발송 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
-    @Transactional
+    @Transactional // 이 메서드가 DB 작업을 직접 수행하지 않으므로 @Transactional이 필수적인지 검토 필요.
+                  // 여기서는 일관성을 위해 유지하거나, 제거를 고려할 수 있음.
     public void sendCustomEmail(CustomEmailRequest request) {
-        try {
-            String from_email = sender_email;
-            String to_email = request.email();
-            String title = request.title();
-            String content = request.content();
-            mailSend(from_email, to_email, title, content);
-        } catch (Exception e) {
-            log.error("message send Exception : ", e);
+        // CustomEmailRequest DTO에 @NotBlank 등의 validation annotation을 사용하는 것이 좋음.
+        // Service layer에서 null/blank 체크를 최소화.
+        if (request.email() == null || request.email().isBlank()) {
+            throw new CustomException(ErrorType.INVALID_REQUEST_PARAMETER, "수신자 이메일 주소는 비어있을 수 없습니다.");
         }
+        if (request.title() == null || request.title().isBlank()) {
+            throw new CustomException(ErrorType.INVALID_REQUEST_PARAMETER, "이메일 제목은 비어있을 수 없습니다.");
+        }
+        if (request.content() == null || request.content().isBlank()) {
+            throw new CustomException(ErrorType.INVALID_REQUEST_PARAMETER, "이메일 내용은 비어있을 수 없습니다.");
+        }
+
+        String from_email = sender_email;
+        String to_email = request.email();
+        String title = request.title();
+        String content = request.content(); // HTML 여부에 따라 setText(content, true) 필요할 수 있음
+
+        // mailSend 내부에서 예외를 throw하므로, 여기서 별도 try-catch로 로그만 남길 필요 없음.
+        // 만약 특정 로깅이나 추가 처리가 필요하다면 try-catch 사용.
+        mailSend(from_email, to_email, title, content);
+        log.info("Custom email sent to {}", to_email);
     }
 
     public boolean checkIsExistEmail(String userEmail){
+        if (userEmail == null || userEmail.isBlank()) {
+            // 또는 ErrorType.INVALID_REQUEST_PARAMETER 등을 사용하여 CustomException throw
+            return false; 
+        }
         return userRepository.existsByEmail(userEmail);
     }
-
 }
