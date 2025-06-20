@@ -27,9 +27,19 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
     private final AiClientService aiClientService;
+    private final DiaryService self; // Self-injection for calling @Transactional methods from within the same class proxy
+
+    // Constructor updated for self-injection
+    public DiaryService(DiaryRepository diaryRepository, UserRepository userRepository, AiClientService aiClientService, DiaryService self) {
+        this.diaryRepository = diaryRepository;
+        this.userRepository = userRepository;
+        this.aiClientService = aiClientService;
+        this.self = self;
+    }
 
     /**
-     * 다이어리 생성 (AI 분석 포함)
+     * 다이어리 생성 (초기 저장)
+     * AI 분석은 비동기적으로 별도 처리됩니다.
      */
     @Transactional
     public DiaryResponse createDiary(String email, DiaryCreateRequest request) {
@@ -38,37 +48,80 @@ public class DiaryService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND));
 
-        // 다이어리 엔터티 생성
         Diary diary = Diary.builder()
                 .user(user)
                 .title(request.title())
                 .content(request.content())
-                .isNegative(false) // 기본값
+                .isNegative(false) // 기본값, AI 분석 후 업데이트될 수 있음
                 .build();
 
-        // 다이어리 저장
         Diary savedDiary = diaryRepository.save(diary);
+        log.info("다이어리 초기 저장 완료 - diaryId: {}", savedDiary.getId());
 
-        // AI 분석 비동기 처리
-        // TODO: 비동기 AI 분석 실패 시 사용자에게 알림을 주거나, 재시도 로직, 또는 실패 상태를 기록하는 등의 명확한 오류 처리 정책 필요.
-        // 현재는 로그만 남기고 있으며, 이는 사용자 경험에 부정적일 수 있음.
-        // 실패 시 CustomException(ErrorType.AI_ANALYSIS_FAILED, error.getMessage()) 발생을 고려할 수 있으나,
-        // 비동기 흐름을 방해하지 않도록 주의해야 함. (예: 별도의 알림 채널, 상태 업데이트)
-        aiClientService.analyzeDiary(request.content())
-                .subscribe(
-                    result -> {
-                        // AI 분석 결과를 다이어리에 반영
-                        savedDiary.setIsNegative(result.isNegative());
-                        if (result.alternativeThought() != null && !result.alternativeThought().isEmpty()) {
-                            savedDiary.setAlternativeThought(result.alternativeThought());
-                        }
-                        diaryRepository.save(savedDiary);
-                        log.info("AI 분석 완료 및 다이어리 업데이트 - diaryId: {}", savedDiary.getId());
-                    },
-                    error -> log.error("AI 분석 실패 - diaryId: {}, error: {}", savedDiary.getId(), error.getMessage())
-                );
+        // AI 분석 및 업데이트를 비동기적으로 트리거 (별도 트랜잭션으로 처리됨)
+        // self.processAiAnalysisAndUpdate(savedDiary.getId(), request.content());
+        // Using a direct call for now, if processAiAnalysisAndUpdate is @Async, self-injection is needed.
+        // For non-@Async but separate transaction for update part, self-injection is also good practice.
+        try {
+             self.processAiAnalysisAndUpdate(savedDiary.getId(), request.content());
+        } catch (Exception e) {
+            // Log error if submitting AI task fails, but don't let it fail the main diary creation.
+            log.error("AI 분석 작업 제출 실패 - diaryId: {}. 다이어리는 생성되었으나 AI 분석은 수행되지 않을 수 있습니다.", savedDiary.getId(), e);
+        }
 
+
+        // 응답은 초기 저장된 다이어리 기준으로 생성
         return DiaryResponse.fromEntity(savedDiary);
+    }
+
+    /**
+     * AI 분석을 수행하고 결과를 다이어리에 업데이트합니다. (비동기 호출용)
+     * AI 분석 자체는 비동기(WebFlux Mono)이며, 결과 업데이트는 새 트랜잭션에서 수행됩니다.
+     */
+    // Consider making this @Async if AI client call is blocking or if you want it on a separate thread pool.
+    // If aiClientService.analyzeDiary is already fully non-blocking (returns Mono/Flux and doesn't block internally),
+    // then @Async here is primarily for offloading the subscribe part from the caller thread.
+    public void processAiAnalysisAndUpdate(Long diaryId, String contentToAnalyze) {
+        log.info("AI 분석 및 업데이트 시작 - diaryId: {}", diaryId);
+        aiClientService.analyzeDiary(contentToAnalyze)
+            .subscribe(
+                aiResult -> {
+                    log.info("AI 분석 결과 수신 - diaryId: {}. isNegative: {}", diaryId, aiResult.isNegative());
+                    // AI 결과를 별도 트랜잭션으로 업데이트
+                    try {
+                        self.updateDiaryWithAiResultsInternal(diaryId, aiResult);
+                    } catch (Exception e) {
+                        log.error("AI 결과로 다이어리 업데이트 중 오류 발생 - diaryId: {}: {}", diaryId, e.getMessage(), e);
+                        // TODO: 실패 알림 또는 재시도 로직 고려
+                    }
+                },
+                error -> {
+                    log.error("AI 분석 서비스 호출 실패 - diaryId: {}: {}", diaryId, error.getMessage());
+                    // TODO: 실패 알림 또는 재시도 로직 고려
+                }
+            );
+    }
+
+    /**
+     * AI 분석 결과를 받아 다이어리를 업데이트하는 내부 트랜잭션 메소드.
+     */
+    @Transactional
+    public void updateDiaryWithAiResultsInternal(Long diaryId, AiClientService.DiaryAnalysisResult aiResult) {
+        log.info("AI 결과 업데이트 트랜잭션 시작 - diaryId: {}", diaryId);
+        Diary diary = diaryRepository.findById(diaryId)
+                .orElseThrow(() -> {
+                    log.warn("AI 결과 업데이트 시 다이어리 찾기 실패 - diaryId: {}", diaryId);
+                    return new CustomException(ErrorType.DIARY_NOT_FOUND_FOR_AI_UPDATE);
+                });
+
+        diary.setIsNegative(aiResult.isNegative());
+        if (aiResult.alternativeThought() != null && !aiResult.alternativeThought().isEmpty()) {
+            diary.setAlternativeThought(aiResult.alternativeThought());
+        }
+        // Ensure updatedAt is modified if you have an @PreUpdate hook or manual update
+        // diary.setUpdatedAt(LocalDateTime.now()); 
+        diaryRepository.save(diary);
+        log.info("AI 결과로 다이어리 업데이트 완료 - diaryId: {}", diary.getId());
     }
 
     /**
@@ -116,26 +169,29 @@ public class DiaryService {
         if (request.title() != null) {
             diary.setTitle(request.title());
         }
-        if (request.content() != null) {
+        boolean contentChanged = false;
+        if (request.title() != null) {
+            diary.setTitle(request.title());
+        }
+        if (request.content() != null && !request.content().equals(diary.getContent())) {
             diary.setContent(request.content());
-            
-            // 내용이 변경된 경우 AI 재분석
-            // TODO: 비동기 AI 분석 실패 시 오류 처리 정책 참고 (createDiary와 동일)
-            aiClientService.analyzeDiary(request.content())
-                    .subscribe(
-                        result -> {
-                            diary.setIsNegative(result.isNegative());
-                            if (result.alternativeThought() != null && !result.alternativeThought().isEmpty()) {
-                                diary.setAlternativeThought(result.alternativeThought());
-                            }
-                            diaryRepository.save(diary);
-                            log.info("다이어리 수정 후 AI 재분석 완료 - diaryId: {}", diary.getId());
-                        },
-                        error -> log.error("다이어리 수정 후 AI 재분석 실패 - diaryId: {}, error: {}", diary.getId(), error.getMessage())
-                    );
+            contentChanged = true;
         }
 
-        return DiaryResponse.fromEntity(diaryRepository.save(diary));
+        Diary updatedDiary = diaryRepository.save(diary); // Save basic updates first
+        log.info("다이어리 기본 정보 수정 완료 - diaryId: {}", updatedDiary.getId());
+
+        if (contentChanged) {
+            log.info("다이어리 내용 변경됨, AI 재분석 트리거 - diaryId: {}", updatedDiary.getId());
+            // AI 분석 및 업데이트를 비동기적으로 트리거
+            try {
+                self.processAiAnalysisAndUpdate(updatedDiary.getId(), request.content());
+            } catch (Exception e) {
+                log.error("AI 재분석 작업 제출 실패 - diaryId: {}. 다이어리는 수정되었으나 AI 재분석은 수행되지 않을 수 있습니다.", updatedDiary.getId(), e);
+            }
+        }
+
+        return DiaryResponse.fromEntity(updatedDiary);
     }
 
     /**

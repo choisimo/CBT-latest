@@ -8,8 +8,15 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+
+/**
+ * @Date : 2025-06-19
+ * @Detail : sort 기능을 위해 user_id, created_at DESC로 인덱스 추가
+ */
 @Entity
-@Table(name = "Diary")
+@Table(name = "Diary", indexes = {
+    @Index(name = "idx_diary_user_created_at", columnList = "user_id, created_at DESC")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

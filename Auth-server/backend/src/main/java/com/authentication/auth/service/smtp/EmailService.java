@@ -17,6 +17,7 @@ import com.authentication.auth.repository.UserRepository;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.web.util.UriComponentsBuilder; // Added for deep link construction
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -44,26 +45,37 @@ public class EmailService {
     }
 
     public String joinEmail(String email){
-        String rand = randomNum();
+        String verificationToken = randomNum(); // This is the token for the link
         String from_email = sender_email;
         String to_email = email;
         String title = "회원 가입 인증 이메일 입니다.";
         String content;
+
+        // Construct the deep link for email verification
+        String verificationLink = UriComponentsBuilder.fromUriString("mycbtapp://verify-email")
+                .queryParam("token", verificationToken)
+                .build().toUriString();
+
+        log.info("Generated email verification link: {}", verificationLink);
 
         try {
             org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:templates/email/email_join_welcome.html");
             try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
                 content = FileCopyUtils.copyToString(reader);
             }
-            content = content.replace("{{verificationCode}}", rand);
+            // Assuming the template now uses {{verificationLink}}
+            content = content.replace("{{verificationLink}}", verificationLink);
+            // If the template still uses {{verificationCode}} for displaying the code as text, 
+            // you might need to pass both or adjust the template significantly.
+            // For now, focusing on the clickable link.
+            // content = content.replace("{{verificationCode}}", verificationToken); // If template needs both
         } catch (IOException e) {
             log.error("Failed to load email template for join welcome: {}", e.getMessage());
-            // 템플릿 로드 실패 시에도 CustomException 발생
             throw new CustomException(ErrorType.EMAIL_TEMPLATE_LOAD_FAILURE, "회원가입 이메일 템플릿 로드에 실패했습니다.");
         }
 
         mailSend(from_email, to_email, title, content); // mailSend 내부에서 예외 처리
-        return rand;
+        return verificationToken; // Return the token, which the client might use to confirm/resend etc.
     }
 
     public String sendTemporalPassword(String email){

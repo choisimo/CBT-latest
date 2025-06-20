@@ -37,8 +37,7 @@ public class JwtUtility {
 
     public JwtUtility(JwtProperties jwtProperties) {
         this.key = Keys.hmacShaKeyFor(jwtProperties.secretKey().getBytes());
-        // Assuming key2 uses the same secretKey as key1 based on new JwtProperties
-        this.key2 = Keys.hmacShaKeyFor(jwtProperties.secretKey().getBytes()); 
+        this.key2 = Keys.hmacShaKeyFor(jwtProperties.secretKey2().getBytes());
         this.ACCESS_TOKEN_VALIDITY = jwtProperties.accessTokenExpirationMinutes() * 60L;
         this.REFRESH_TOKEN_VALIDITY = jwtProperties.refreshTokenExpirationMinutes() * 60L;
     }
