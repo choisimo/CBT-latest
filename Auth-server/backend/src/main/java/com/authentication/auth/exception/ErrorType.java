@@ -99,6 +99,7 @@ public enum ErrorType {
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "다이어리를 찾을 수 없습니다."), // OK
     DIARY_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "다이어리 생성에 실패했습니다."), // OK
     DIARY_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "다이어리 수정에 실패했습니다."), // OK
+    DIARY_NOT_FOUND_FOR_AI_UPDATE(HttpStatus.NOT_FOUND, "AI 업데이트용 다이어리를 찾을 수 없습니다."),
     DIARY_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "다이어리 삭제에 실패했습니다."), // OK
     
     // AI Service specific errors

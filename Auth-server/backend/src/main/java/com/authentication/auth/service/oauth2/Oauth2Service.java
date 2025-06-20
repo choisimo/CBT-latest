@@ -34,6 +34,11 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import com.authentication.auth.domain.User;
 import com.authentication.auth.repository.UserRepository;
@@ -45,7 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class Oauth2Service {
+
+public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
     @Value("${server.cookie.domain}")
     private String domain; // For cookie domain - Will be used in P2 for HttpOnly cookie
@@ -57,6 +63,16 @@ public class Oauth2Service {
     private final AuthProviderRepository authProviderRepository;
     private final UserAuthenticationRepository userAuthenticationRepository;
     private final RestTemplate restTemplate;
+
+    // -------------------------------------------------------------
+    // OAuth2UserService Implementation
+    // -------------------------------------------------------------
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        // 기본 구현 위임 (사용자 정보를 단순 조회) - 필요 시 커스터마이징 가능
+        DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
+        return delegate.loadUser(userRequest);
+    }
 
     public Map<String, String> getKakaoTokens(String tempCode) {
         log.info("Requesting Kakao tokens with tempCode: {}", tempCode != null ? "present" : "null");

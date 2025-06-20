@@ -1,3 +1,14 @@
+USE oss_emotion;
+
+-- 1) FK 검사 잠시 해제
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 2) 기존 객체 정리 (자식 → 부모 순서)
+DROP TABLE IF EXISTS User_Authentication;
+DROP TABLE IF EXISTS Auth_Provider;
+DROP TABLE IF EXISTS Users;
+
+
 -- =================================================================================
 -- Table: Users
 -- Description: 애플리케이션 사용자 정보를 저장합니다.
@@ -118,3 +129,7 @@ CREATE TABLE Diary_Report_Link (
     FOREIGN KEY (diary_id) REFERENCES Diary(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (report_id) REFERENCES Report(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT '일기-리포트 연결 테이블';
+
+
+-- 5) FK 검사 다시 활성화
+SET FOREIGN_KEY_CHECKS = 1;

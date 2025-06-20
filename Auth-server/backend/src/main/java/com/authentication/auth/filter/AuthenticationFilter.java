@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -64,7 +65,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
      */
     @Autowired
     public AuthenticationFilter(
-            AuthenticationManager authenticationManager,
+            @Lazy AuthenticationManager authenticationManager,
             JwtUtility jwtUtility,
             ObjectMapper objectMapper,
             RedisService redisService,

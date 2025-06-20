@@ -26,6 +26,7 @@ import com.authentication.auth.service.smtp.EmailService;
 import com.authentication.auth.service.users.UserService;
 
 import java.util.*;
+import jakarta.validation.Valid;
 
 /**
  * 사용자 관리 컨트롤러
@@ -48,8 +49,8 @@ public class UsersController implements UserApi {
     private final FileService fileService;
 
     @Override
-    @PostMapping("/public/join")
-    public ResponseEntity<ApiResponse<String>> join(@RequestBody JoinRequest request) {
+    @PostMapping("/public/join") 
+    public ResponseEntity<ApiResponse<String>> join(@Valid @RequestBody JoinRequest request) {
         // 이메일 인증 코드 확인
         if (!redisService.checkEmailCode(request.email(), request.emailAuthCode())) {
             throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증 코드가 유효하지 않거나 만료되었습니다.");

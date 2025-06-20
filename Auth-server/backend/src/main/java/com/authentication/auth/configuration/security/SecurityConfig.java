@@ -16,6 +16,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 @Slf4j
 @Configuration
@@ -27,20 +30,19 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final PrincipalDetailService principalDetailService; // Used for non-OAuth login
     private final FilterRegistry filterRegistry;
-    private final com.authentication.auth.filter.JwtVerificationFilter jwtVerificationFilter;
+    
     private final com.authentication.auth.configuration.security.handler.CustomOAuth2AuthenticationSuccessHandler customOAuth2AuthenticationSuccessHandler; // Inject custom success handler
-    private final com.authentication.auth.service.oauth2.Oauth2Service oauth2UserService; // Assuming Oauth2Service implements OAuth2UserService
+    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService;
 
     public SecurityConfig(CorsConfigurationSource corsConfigurationSource,
                           PrincipalDetailService principalDetailService,
                           FilterRegistry filterRegistry,
-                          com.authentication.auth.filter.JwtVerificationFilter jwtVerificationFilter,
                           com.authentication.auth.configuration.security.handler.CustomOAuth2AuthenticationSuccessHandler customOAuth2AuthenticationSuccessHandler,
-                          com.authentication.auth.service.oauth2.Oauth2Service oauth2UserService) {
+                          OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService) {
         this.corsConfigurationSource = corsConfigurationSource;
         this.principalDetailService = principalDetailService;
         this.filterRegistry = filterRegistry;
-        this.jwtVerificationFilter = jwtVerificationFilter;
+        
         this.customOAuth2AuthenticationSuccessHandler = customOAuth2AuthenticationSuccessHandler;
         this.oauth2UserService = oauth2UserService;
     }
@@ -99,10 +101,7 @@ public class SecurityConfig {
         // filter
         filterRegistry.configureFilters(http); // This custom registry might do other things
 
-        // Explicitly add JwtVerificationFilter before AuthenticationFilter (which is UsernamePasswordAuthenticationFilter)
-        // This ensures JWTs are checked for all paths before attempting username/password authentication.
-        http.addFilterBefore(jwtVerificationFilter, com.authentication.auth.filter.AuthenticationFilter.class);
-
+        
          // authorization
          http.authorizeHttpRequests((authorize) -> {
             authorize

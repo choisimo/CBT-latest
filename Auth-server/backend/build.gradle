@@ -48,6 +48,7 @@ dependencies {
 
     // Database
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    testImplementation 'com.h2database:h2:2.1.214'
 
     // QueryDSL (OpenFeign 포크 버전)
     implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"
@@ -77,6 +78,10 @@ dependencies {
 
     // Socket.IO
     implementation 'com.corundumstudio.socketio:netty-socketio:2.0.3'
+
+    // Resilience4j (CircuitBreaker & TimeLimiter)
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-reactor:2.2.0'
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

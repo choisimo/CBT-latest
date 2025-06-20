@@ -7,11 +7,13 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.authentication.auth.utility.SqlSchemaLoader;
 import com.authentication.auth.validator.EntitySqlValidator;
 
 @SpringBootTest
+@ActiveProfiles("test")
 public class EntitySqlValidationTest {
 
         @Test

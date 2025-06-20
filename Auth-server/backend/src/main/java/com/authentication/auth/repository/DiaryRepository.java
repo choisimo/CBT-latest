@@ -46,13 +46,35 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     
     // 제목으로 검색
     @Query("SELECT d FROM Diary d WHERE d.user = :user AND d.title LIKE %:keyword% ORDER BY d.createdAt DESC")
-    Page<Diary> findByUserAndTitleContaining(@Param("user") User user, 
-                                           @Param("keyword") String keyword, 
+    Page<Diary> findByUserAndTitleContainingOrderByCreatedAtDesc(@Param("user") User user,
+                                           @Param("keyword") String keyword,
                                            Pageable pageable);
     
     // 내용으로 검색
     @Query("SELECT d FROM Diary d WHERE d.user = :user AND d.content LIKE %:keyword% ORDER BY d.createdAt DESC")
-    Page<Diary> findByUserAndContentContaining(@Param("user") User user, 
-                                             @Param("keyword") String keyword, 
+    Page<Diary> findByUserAndContentContainingOrderByCreatedAtDesc(@Param("user") User user,
+                                             @Param("keyword") String keyword,
                                              Pageable pageable);
+
+    // 제목 또는 내용으로 검색 (통합)
+    Page<Diary> findByUserAndTitleContainingOrUserAndContentContainingOrderByCreatedAtDesc(
+            User user1, @Param("titleKeyword") String titleKeyword,
+            User user2, @Param("contentKeyword") String contentKeyword, // JPQL에서는 동일 엔티티라도 파라미터명이 달라야 할 수 있음
+            Pageable pageable
+    );
+
+    // 특정 날짜 범위로 조회 (날짜 지정 조회용)
+    List<Diary> findByUserAndCreatedAtBetweenOrderByCreatedAtDesc(User user, LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    // 사용자의 특정 월에 일기가 있는 날짜 목록 조회 (캘린더용)
+    @Query("SELECT DISTINCT DAY(d.createdAt) FROM Diary d WHERE d.user = :user AND FUNCTION('YEAR', d.createdAt) = :year AND FUNCTION('MONTH', d.createdAt) = :month ORDER BY DAY(d.createdAt) ASC")
+    List<Integer> findDistinctDaysWithDiaryByUserAndMonth(
+            @Param("user") User user,
+            @Param("year") int year,
+            @Param("month") int month
+    );
+
+    // 사용자의 is_negative 개수 카운트
+    long countByUserAndIsNegativeTrue(User user);
+
 } 

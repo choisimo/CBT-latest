@@ -1,3 +1,14 @@
+USE oss_emotion;
+
+-- 1) FK 검사 잠시 해제
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 2) 기존 객체 정리 (자식 → 부모 순서)
+DROP TABLE IF EXISTS User_Authentication;
+DROP TABLE IF EXISTS Auth_Provider;
+DROP TABLE IF EXISTS Users;
+
+
 -- =================================================================================
 -- Table: Users
 -- Description: 애플리케이션 사용자 정보를 저장합니다.
@@ -15,6 +26,7 @@ CREATE TABLE Users (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 정보 수정 시간'
 ) COMMENT '사용자 정보 테이블';
 
+
 -- =================================================================================
 -- Table: Auth_Provider
 -- Description: 시스템이 지원하는 인증 제공자(자체 서버, Google, Kakao 등) 목록을 저장합니다.
@@ -25,6 +37,7 @@ CREATE TABLE Auth_Provider (
     description VARCHAR(255) NULL COMMENT '인증 제공자 설명',
     is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '활성화 여부'
 ) COMMENT '인증 제공자 정보 테이블';
+
 
 -- =================================================================================
 -- Table: User_Authentication
@@ -38,9 +51,10 @@ CREATE TABLE User_Authentication (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '인증 정보 수정 시간',
     PRIMARY KEY (user_id, auth_provider_id),
     UNIQUE (auth_provider_id, social_id),
-    FOREIGN KEY (user_id) REFERENCES Users (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (auth_provider_id) REFERENCES Auth_Provider (id) ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (auth_provider_id) REFERENCES Auth_Provider(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) COMMENT '사용자별 인증 수단 정보';
+
 
 -- =================================================================================
 -- Table: Settings_option
@@ -55,6 +69,7 @@ CREATE TABLE Settings_option (
     is_user_editable BOOLEAN NOT NULL DEFAULT TRUE COMMENT '사용자 수정 가능 여부'
 ) COMMENT '기본 설정 옵션';
 
+
 -- =================================================================================
 -- Table: User_custom_setting
 -- Description: 사용자가 기본 설정을 변경한 경우, 해당 값을 저장합니다.
@@ -66,9 +81,10 @@ CREATE TABLE User_custom_setting (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '커스텀 설정 생성 시간',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '커스텀 설정 수정 시간',
     PRIMARY KEY (user_id, setting_id),
-    FOREIGN KEY (user_id) REFERENCES Users (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (setting_id) REFERENCES Settings_option (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (setting_id) REFERENCES Settings_option(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT '사용자 커스텀 설정';
+
 
 -- =================================================================================
 -- Table: Diary
@@ -83,8 +99,9 @@ CREATE TABLE Diary (
     is_negative BOOLEAN DEFAULT FALSE COMMENT '부정적 감정 포함 여부',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '작성 시간',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 수정 시간',
-    FOREIGN KEY (user_id) REFERENCES Users (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT '일기 정보 테이블';
+
 
 -- =================================================================================
 -- Table: Report
@@ -97,8 +114,9 @@ CREATE TABLE Report (
     change_process TEXT NULL COMMENT '사고의 변화 과정',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '리포트 생성 시간',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '리포트 수정 시간',
-    FOREIGN KEY (user_id) REFERENCES Users (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT '종합 리포트';
+
 
 -- =================================================================================
 -- Table: Diary_Report_Link
@@ -108,6 +126,10 @@ CREATE TABLE Diary_Report_Link (
     diary_id BIGINT NOT NULL COMMENT '일기 ID (FK)',
     report_id BIGINT NOT NULL COMMENT '리포트 ID (FK)',
     PRIMARY KEY (diary_id, report_id),
-    FOREIGN KEY (diary_id) REFERENCES Diary (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (report_id) REFERENCES Report (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (diary_id) REFERENCES Diary(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (report_id) REFERENCES Report(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT '일기-리포트 연결 테이블';
+
+
+-- 5) FK 검사 다시 활성화
+SET FOREIGN_KEY_CHECKS = 1;
