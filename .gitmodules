@@ -1,0 +1,3 @@
+[submodule "React_Native"]
+	path = CBT-front
+	url = git@github.com:CBT-Diary-Team/React_Native.git
