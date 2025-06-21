@@ -78,10 +78,7 @@ class UsersControllerTest {
                 Arguments.of("이메일 공백", new JoinRequest("password123", "", "123456")),
                 Arguments.of("이메일 형식 아님", new JoinRequest("password123", "invalid-email", "123456")),
                 Arguments.of("이메일 인증 코드 null", new JoinRequest("password123", "test@example.com", null)),
-                Arguments.of("이메일 인증 코드 공백", new JoinRequest("password123", "test@example.com", "")),
-                // Test with all valid but one field missing/invalid
-                Arguments.of("모든 필드 유효 (기준)", new JoinRequest("password123", "test@example.com", "123456")) // This one should NOT be isBadRequest, but for DTO validation itself, it's fine to test if any @NotBlank breaks
-                                                                                                                     // Let's remove this valid case as the test expects BadRequest
+                Arguments.of("이메일 인증 코드 공백", new JoinRequest("password123", "test@example.com", ""))
         );
     }
 
