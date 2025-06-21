@@ -140,4 +140,9 @@ public class UserService {
         return repository.existsByUserId(userId);
     }
 
+    @Transactional(readOnly = true) // checkLoginIdIsDuplicate는 읽기 전용
+    public boolean checkLoginIdIsDuplicate(String loginId) {
+        return repository.existsByLoginId(loginId);
+    }
+
 }

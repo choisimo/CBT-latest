@@ -110,6 +110,14 @@ public class UsersController implements UserApi {
     }
 
     @Override
+    @PostMapping("/public/check/loginId/IsDuplicate")
+    public ResponseEntity<ApiResponse<Boolean>> checkLoginIdIsDuplicate(@RequestBody String loginId) {
+        log.info("/check/loginId/IsDuplicate : {}", loginId);
+        boolean isDuplicate = userService.checkLoginIdIsDuplicate(loginId);
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "로그인 ID 중복 확인이 완료되었습니다."));
+    }
+
+    @Override
     @PostMapping("/public/clean/userTokenCookie")
     public ResponseEntity<ApiResponse<String>> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response) {
         String cookieName = "refreshToken";
