@@ -140,6 +140,28 @@ public class RedisService {
     }
 
     /**
+     * 리프레시 토큰 조회
+     * 
+     * @param userId   사용자 ID
+     * @param provider 제공자
+     * @return 리프레시 토큰 (없으면 null)
+     */
+    @Transactional(readOnly = true)
+    public String getRToken(String userId, String provider) {
+        String redisKey = refreshTokenToRedisKey(userId, provider);
+        try {
+            String refreshToken = redisTemplate.opsForValue().get(redisKey);
+            if (refreshToken == null) {
+                log.warn("Redis에서 리프레시 토큰을 찾을 수 없습니다: 제공자={}, 사용자={}", provider, userId);
+            }
+            return refreshToken;
+        } catch (Exception e) {
+            log.error("Redis에서 리프레시 토큰 조회 실패: 제공자={}, 사용자={}", provider, userId, e);
+            return null;
+        }
+    }
+
+    /**
      * 리프레시 토큰 존재 여부 확인
      * 
      * @param userId       사용자 ID
