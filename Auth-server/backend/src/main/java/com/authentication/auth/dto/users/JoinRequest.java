@@ -15,9 +15,9 @@ import java.util.Date;
  * 회원 가입 요청 정보를 담는 불변 레코드
  */
 public record JoinRequest (
-    @Schema(description = "사용자 ID", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "사용자 ID는 필수입니다")
-    String userId,
+    @Schema(description = "사용자 로그인 ID", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "사용자 로그인 ID는 필수입니다")
+    String loginId,
 
     @Schema(description = "사용자 비밀번호", example = "P@sswOrd123!", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "비밀번호는 필수입니다")
@@ -37,13 +37,13 @@ public record JoinRequest (
      * 기본 프로필 이미지를 사용하는 팩토리 메서드
      */
     public static JoinRequest of(
-            Integer userId,
+            String loginId,
             String userPw,
             String email,
             String nickname,
             ) {
         return new JoinRequest(
-                userId, userPw, email, nickname);
+                loginId, userPw, email, nickname);
     }
 
     /**

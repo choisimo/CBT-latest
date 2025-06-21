@@ -45,11 +45,12 @@ public class UserService {
                     .nickname(request.nickname())
                     .password(passwordEncoder.encode(request.userPw()))
                     .email(request.email())
+                    .loginId(request.loginId())
                     .isPremium(false)
                     .isActive("WAITING") // 초기 상태는 WAITING
                     .build();
             repository.save(newUser);
-            log.info("회원가입 요청 성공 (상태: WAITING): email={} ", newUser.getEmail());
+            log.info("회원가입 요청 성공 (상태: WAITING): email={} loginId={}", newUser.getEmail(), newUser.getLoginId());
             return newUser;
         } catch (Exception e) {
             log.error("회원 가입 처리 중 오류 발생", e);
