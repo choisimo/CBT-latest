@@ -39,14 +39,6 @@ public class Diary {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    // SQL: alternative_thought TEXT NULL -> 필드명 및 컬럼명 일치
-    @Lob
-    @Column(name = "alternative_thought", columnDefinition = "TEXT")
-    private String alternativeThought;
-
-    // SQL: is_negative BOOLEAN DEFAULT FALSE
-    @Column(name = "is_negative")
-    private Boolean isNegative;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
