@@ -26,30 +26,31 @@ import java.io.IOException;
 @Slf4j
 @RestController
 @RequiredArgsConstructor // Using Lombok for constructor injection
-public class TokenController implements TokenApi {
+public class TokenController {
 
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager; // Injected AuthenticationManager
 
-    @Override
-    @PostMapping("/login") // Ensuring PostMapping is present as per standard practices, overriding from interface
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
-        log.info("Login attempt for user: {}", loginRequest.email());
+    //UserController에서 로그인 처리
+    
+    // @Override
+    // @PostMapping("/login") // Ensuring PostMapping is present as per standard practices, overriding from interface
+    // public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
+    //     log.info("Login attempt for user: {}", loginRequest.loginId());
 
-        // Create authentication token
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password());
+    //     // Create authentication token
+    //     UsernamePasswordAuthenticationToken authenticationToken =
+    //             new UsernamePasswordAuthenticationToken(loginRequest.loginId(), loginRequest.password());
 
-        // Authenticate user
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+    //     // Authenticate user
+    //     Authentication authentication = authenticationManager.authenticate(authenticationToken);
 
-        // If authentication is successful, proceed with post-login actions
-        LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
+    //     // If authentication is successful, proceed with post-login actions
+    //     LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
 
-        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
-    }
+    //     return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
+    // }
 
-    @Override
     @PostMapping("/refresh") // Ensuring PostMapping is present
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody TokenRefreshRequest request) throws IOException {
 

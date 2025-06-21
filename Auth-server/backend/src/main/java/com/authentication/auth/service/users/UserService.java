@@ -2,15 +2,22 @@ package com.authentication.auth.service.users;
 
 import com.authentication.auth.domain.User;
 import com.authentication.auth.dto.users.JoinRequest;
+import com.authentication.auth.dto.users.LoginRequest;
+import com.authentication.auth.dto.users.LoginResponse;
+import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.repository.UserRepository;
 import com.authentication.auth.service.redis.RedisService; // RedisService import
+import com.authentication.auth.configuration.token.JwtUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
 
 @Slf4j
 @Service
@@ -20,6 +27,7 @@ public class UserService {
     private final UserRepository repository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final RedisService redisService; // RedisService 주입
+    private final JwtUtility jwtUtility; // JwtUtility 주입
 
     @Transactional
     public User join(JoinRequest request) {
@@ -34,19 +42,45 @@ public class UserService {
 
         try {
             User newUser = User.builder()
-                    .userName(request.email().split("@")[0] + "_" + java.util.UUID.randomUUID().toString()) // 이메일 명 앞부분을 기본 닉네임으로 사용 + UUID
+                    .nickname(request.nickname())
                     .password(passwordEncoder.encode(request.userPw()))
                     .email(request.email())
+                    .loginId(request.loginId())
                     .isPremium(false)
                     .isActive("WAITING") // 초기 상태는 WAITING
                     .build();
             repository.save(newUser);
-            log.info("회원가입 요청 성공 (상태: WAITING): email={} ", newUser.getEmail());
+            log.info("회원가입 요청 성공 (상태: WAITING): email={} loginId={}", newUser.getEmail(), newUser.getLoginId());
             return newUser;
         } catch (Exception e) {
             log.error("회원 가입 처리 중 오류 발생", e);
             throw new CustomException(ErrorType.INTERNAL_SERVER_ERROR, "회원 가입 처리 중 오류가 발생했습니다.", e);
         }
+    }
+
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
+        User user = repository.findByLoginId(request.loginId())
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + request.loginId()));
+        
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new CustomException(ErrorType.INVALID_REQUEST, "비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 토큰 생성
+        TokenDto tokenDto = jwtUtility.buildToken(
+            user.getNickname(), 
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getUserRole()))
+        );
+        
+        // 사용자 정보 생성
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+            user.getId(),
+            user.getNickname(),
+            user.getEmail()
+        );
+        
+        return new LoginResponse(tokenDto.accessToken(), userInfo);
     }
 
     @Transactional
@@ -93,9 +127,20 @@ public class UserService {
     }
     
 
-    @Transactional(readOnly = true) // checkUserNameIsDuplicate는 읽기 전용
-    public boolean checkUserNameIsDuplicate(String userName) {
-        return repository.existsByUserName(userName);
+    @Transactional(readOnly = true)
+    public boolean checkNicknameIsDuplicate(String nickname) {
+        return repository.existsByNickname(nickname);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean checkUserIdIsDuplicate(Integer userId) {
+        // Integer userId로 받지만 실제로는 loginId(String)으로 체크해야 함
+        return repository.existsByUserId(userId);
+    }
+
+    @Transactional(readOnly = true) // checkLoginIdIsDuplicate는 읽기 전용
+    public boolean checkLoginIdIsDuplicate(String loginId) {
+        return repository.existsByLoginId(loginId);
     }
 
 }

@@ -16,6 +16,8 @@ import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
+import com.authentication.auth.dto.users.LoginRequest;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
@@ -33,11 +35,11 @@ import jakarta.validation.Valid;
  * 회원가입, 프로필 업로드, 중복 체크 등을 처리합니다.
  */
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api")
-public class UsersController implements UserApi {
+@RequiredArgsConstructor
+@Slf4j
+public class UsersController {
 
     @Value("${site.domain}")
     private String domain;
@@ -48,13 +50,12 @@ public class UsersController implements UserApi {
     private final JwtUtility jwtUtility;
     private final FileService fileService;
 
-    @Override
-    @PostMapping("/public/join") 
-    public ResponseEntity<ApiResponse<String>> join(@Valid @RequestBody JoinRequest request) {
-        // 이메일 인증 코드 확인
-        if (!redisService.checkEmailCode(request.email(), request.emailAuthCode())) {
-            throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증 코드가 유효하지 않거나 만료되었습니다.");
-        }
+    @PostMapping("/public/join")
+    public ResponseEntity<ApiResponse<String>> join(@Valid @RequestBody JoinRequest request) throws Exception {
+        // // 이메일 인증 코드 확인
+        // if (!redisService.checkEmailCode(request.email(), request.emailAuthCode())) {
+        //     throw new CustomException(ErrorType.INVALID_EMAIL_CODE, "이메일 인증 코드가 유효하지 않거나 만료되었습니다.");
+        // }
         
         // 회원가입 처리 (사용자는 "WAITING" 상태로 저장됨)
         com.authentication.auth.domain.User newUser = userService.join(request);
@@ -65,7 +66,13 @@ public class UsersController implements UserApi {
         return ResponseEntity.ok(ApiResponse.success(null, "회원가입 및 이메일 인증이 성공적으로 완료되었습니다."));
     }
 
-    @Override
+    @PostMapping("/login") 
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = userService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인 성공"));
+    }
+
+
     @PostMapping("/public/profileUpload")
     public ResponseEntity<ApiResponse<Map<String, String>>> fileUpload(@RequestParam("profile") MultipartFile[] files) {
         if (files == null || files.length == 0) {
@@ -83,23 +90,27 @@ public class UsersController implements UserApi {
         return ResponseEntity.ok(ApiResponse.success(uploadResults, "프로필 이미지가 성공적으로 업로드되었습니다."));
     }
 
-    @Override
     @PostMapping("/public/check/nickname/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserNameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
-        log.info("/check/userName/IsDuplicate : {}", requestDto.userName());
-        boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
+    public ResponseEntity<ApiResponse<Boolean>> checkNicknameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
+        log.info("/check/nickname/IsDuplicate : {}", requestDto.nickname());
+        boolean isDuplicate = userService.checkNicknameIsDuplicate(requestDto.nickname());
         return ResponseEntity.ok(ApiResponse.success(isDuplicate, "닉네임 중복 확인이 완료되었습니다."));
     }
 
-    @Override
     @PostMapping("/public/check/userId/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
-        log.info("/check/userId/IsDuplicate : {}", requestDto.userName());
-        boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
+    public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody Integer userId) {
+        log.info("/check/userId/IsDuplicate : {}", userId);
+        boolean isDuplicate = userService.checkUserIdIsDuplicate(userId);
         return ResponseEntity.ok(ApiResponse.success(isDuplicate, "사용자 ID 중복 확인이 완료되었습니다."));
     }
 
-    @Override
+    @PostMapping("/public/check/loginId/IsDuplicate")
+    public ResponseEntity<ApiResponse<Boolean>> checkLoginIdIsDuplicate(@RequestBody String loginId) {
+        log.info("/check/loginId/IsDuplicate : {}", loginId);
+        boolean isDuplicate = userService.checkLoginIdIsDuplicate(loginId);
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "로그인 ID 중복 확인이 완료되었습니다."));
+    }
+
     @PostMapping("/public/clean/userTokenCookie")
     public ResponseEntity<ApiResponse<String>> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response) {
         String cookieName = "refreshToken";

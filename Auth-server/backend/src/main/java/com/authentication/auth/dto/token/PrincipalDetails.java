@@ -59,7 +59,7 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
     }
 
     public String getNickname() {
-        return user.getUserName();
+        return user.getNickname();
     }
 
     /**

@@ -73,6 +73,12 @@ public class EmailController implements EmailApi {
         }
     }
 
+    @PostMapping("/public/check/email/IsDuplicate")
+    public ResponseEntity<ApiResponse<Boolean>> checkEmailIsDuplicate(@RequestBody String email) {
+        boolean isDuplicate = emailService.checkIsExistEmail(email);
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "이메일 중복 확인이 완료되었습니다."));
+    }
+
     @Override
     @PostMapping("/protected/sendEmailPassword")
     public ResponseEntity<ApiResponse<EmailSendResponse>> sendTemporaryPasswordToAuthenticatedUser(@AuthenticationPrincipal PrincipalDetails principalDetails) {

@@ -51,7 +51,14 @@ public class TokenService {
         // Refresh Token을 HttpOnly 쿠키로 설정하는 로직은 Controller 또는 AuthController에서 담당 (P2 단계에서 진행 예정)
         // tokenProvider.setHttpOnlyCookie(response, refreshToken); 
 
-        return new LoginResponse(accessToken, refreshToken);
+        // 사용자 정보 생성 (간단한 정보만 포함)
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+            null, // userId는 토큰에서 추출 가능하므로 null
+            userId, // nickname
+            null  // email은 별도 조회가 필요하므로 null
+        );
+
+        return new LoginResponse(accessToken, userInfo);
     }
 
     @Transactional
@@ -60,30 +67,25 @@ public class TokenService {
         String expiredAccessToken = request.expiredToken();
         String provider = request.provider();
 
-        // 1. Extract Refresh Token from request body
-        String refreshTokenFromBody = request.refreshToken();
-        if (refreshTokenFromBody == null || refreshTokenFromBody.isBlank()) {
-            throw new CustomException(ErrorType.REFRESH_TOKEN_NOT_FOUND, "요청 본문에 리프레시 토큰이 없습니다.");
-        }
-
-        // 2. Validate the Refresh Token
-        if (!tokenProvider.validateRefreshToken(refreshTokenFromBody)) {
-            throw new CustomException(ErrorType.INVALID_REFRESH_TOKEN, "유효하지 않거나 만료된 리프레시 토큰입니다.");
-        }
-
-        // 3. Extract User ID from the *expired* access token (it still contains user info)
+        // 1. Extract User ID from the *expired* access token (it still contains user info)
         String userId = tokenProvider.getUserIdFromToken(expiredAccessToken);
         if (userId == null) {
             // This might happen if the expiredAccessToken is bogus or not what's expected
             throw new CustomException(ErrorType.INVALID_ACCESS_TOKEN, "만료된 액세스 토큰에서 사용자 ID를 추출할 수 없습니다.");
         }
 
-        // 4. Check if the Refresh Token from request body exists in Redis for this user and provider
-        if (!redisService.isRTokenExist(userId, provider, refreshTokenFromBody)) {
-            throw new CustomException(ErrorType.REFRESH_TOKEN_MISMATCH, "리프레시 토큰이 Redis에 없거나 일치하지 않습니다.");
+        // 2. Get Refresh Token from Redis using userId and provider
+        String refreshTokenFromRedis = redisService.getRToken(userId, provider);
+        if (refreshTokenFromRedis == null || refreshTokenFromRedis.isBlank()) {
+            throw new CustomException(ErrorType.REFRESH_TOKEN_NOT_FOUND, "Redis에 저장된 리프레시 토큰을 찾을 수 없습니다.");
         }
 
-        // 5. If all checks pass, issue a new Access Token
+        // 3. Validate the Refresh Token
+        if (!tokenProvider.validateRefreshToken(refreshTokenFromRedis)) {
+            throw new CustomException(ErrorType.INVALID_REFRESH_TOKEN, "저장된 리프레시 토큰이 유효하지 않거나 만료되었습니다.");
+        }
+
+        // 4. If all checks pass, issue a new Access Token
         String newAccessToken = tokenProvider.refreshToken(expiredAccessToken, provider);
         if (newAccessToken == null || newAccessToken.isBlank()) {
             throw new CustomException(ErrorType.TOKEN_CREATION_FAILED, "새로운 액세스 토큰 생성에 실패했습니다.");

@@ -12,7 +12,4 @@ public record DiaryPostListResponseDto(
         List<DiaryPostItemDto> data,
         PageInfoDto pageInfo
 ) {
-    public static DiaryPostListResponseDtoBuilder builder() {
-        return new DiaryPostListResponseDtoBuilder();
-    }
 }

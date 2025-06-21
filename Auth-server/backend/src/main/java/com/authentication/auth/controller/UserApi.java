@@ -2,6 +2,8 @@ package com.authentication.auth.controller;
 
 
 import com.authentication.auth.dto.users.JoinRequest;
+import com.authentication.auth.dto.users.LoginRequest;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
 import com.authentication.auth.dto.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,6 +67,34 @@ public interface UserApi {
                                }
                               )
             ) JoinRequest request) throws Exception;
+
+    @Operation(summary = "로그인", description = "사용자 로그인을 처리하고 JWT 토큰을 반환합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공", 
+                         content = @Content(mediaType = "application/json", 
+                                            schema = @Schema(implementation = LoginResponse.class),
+                                            examples = @ExampleObject(name = "로그인 성공 응답", value = "{\"access_token\": \"eyJhbGciOiJIUzUxMiJ9...\", \"refresh_token\": \"eyJhbGciOiJIUzUxMiJ9...\"}"))),
+            @ApiResponse(responseCode = "401", description = "인증 실패", 
+                         content = @Content(mediaType = "application/json", 
+                                            schema = @Schema(implementation = ErrorResponse.class),
+                                            examples = @ExampleObject(name = "인증 실패 응답", value = "{\"timestamp\": \"2023-10-27T10:00:00Z\", \"status\": 401, \"error\": \"Unauthorized\", \"message\": \"Invalid credentials\", \"path\": \"/api/login\"}"))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", 
+                         content = @Content(mediaType = "application/json", 
+                                            schema = @Schema(implementation = ErrorResponse.class),
+                                            examples = @ExampleObject(name = "사용자 없음 응답", value = "{\"timestamp\": \"2023-10-27T10:00:00Z\", \"status\": 404, \"error\": \"Not Found\", \"message\": \"User not found\", \"path\": \"/api/login\"}")))
+    })
+    ResponseEntity<com.authentication.auth.dto.response.ApiResponse<LoginResponse>> login(@RequestBody(description = "로그인 정보", required = true,
+            content = @Content(mediaType = "application/json",
+                               schema = @Schema(implementation = LoginRequest.class),
+                               examples = {
+                                   @ExampleObject(
+                                       name = "로그인 요청 예시",
+                                       summary = "일반적인 로그인 요청입니다.",
+                                        value = "{\"loginId\": \"user@example.com\", \"password\": \"Password123!\"}"
+                                   )
+                               }
+                              )
+            ) LoginRequest request);
 
     @Operation(summary = "프로필 이미지 업로드", description = "유저 프로필 이미지를 업로드하고 이미지 URL을 반환받습니다.")
     @ApiResponses(value = {

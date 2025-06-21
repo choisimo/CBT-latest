@@ -19,7 +19,17 @@ public record UserProfileResponse(
      */
     public static UserProfileResponse fromEntity(User user) {
         return new UserProfileResponse(
-            user.getUserName(),
+            user.getNickname(),
+            user.getEmail(),
+            user.getUserRole(),
+            user.getCreatedAt(),
+            user.getLastLogin()
+        );
+    }
+
+    public static UserProfileResponse fromUser(User user) {
+        return new UserProfileResponse(
+            user.getNickname(),
             user.getEmail(),
             user.getUserRole(),
             user.getCreatedAt(),

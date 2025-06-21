@@ -7,6 +7,7 @@ import lombok.Builder;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * 로그인 성공 시 반환되는 응답 DTO.
@@ -38,7 +39,7 @@ public record LoginResponseDto(
     public static LoginResponseDto of(User user, TokenDto tokenDto, List<String> roles) {
         UserInfo userInfo = UserInfo.builder()
                 .userId(String.valueOf(user.getId()))
-                .username(user.getUserName())
+                .username(user.getNickname())
                 .email(user.getEmail())
                 .roles(roles)
                 .build();

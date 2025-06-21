@@ -99,8 +99,8 @@ public class JwtUtility {
             String userId = parsedToken.getBody().get("userId").toString();
 
             User userForPrincipal = User.builder()
-                    .userName(userId)
-                    .userRole(String.join(",", roles))
+                    .nickname(userId)
+                    .email("dummy@email.com")
                     .build();
 
             UserDetails principalDetails = new PrincipalDetails(userForPrincipal);

@@ -1,10 +1,8 @@
 package com.authentication.auth.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Slf4j
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,8 +32,11 @@ public class User {
     /**
      * 사용자 로그인 ID 및 대표 닉네임 (DB의 user_name 컬럼)
      */
-    @Column(name = "user_name", nullable = false, length = 50, unique = true)
-    private String userName;
+    @Column(name = "login_id", nullable = false, length = 50, unique = true)
+    private String loginId;
+
+    @Column(name = "nickname", nullable = false, length = 50, unique = true)
+    private String nickname;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -84,5 +86,10 @@ public class User {
     // Method to activate user
     public void activate() {
         this.isActive = "ACTIVE";
+    }
+    
+    // UserService에서 사용하는 메서드들 추가
+    public String getUserNickname() {
+        return this.nickname;
     }
 }

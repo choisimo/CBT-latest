@@ -15,6 +15,9 @@ import java.util.Date;
  * 회원 가입 요청 정보를 담는 불변 레코드
  */
 public record JoinRequest (
+    @Schema(description = "사용자 로그인 ID", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "사용자 로그인 ID는 필수입니다")
+    String loginId,
 
     @Schema(description = "사용자 비밀번호", example = "P@sswOrd123!", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "비밀번호는 필수입니다")
@@ -26,19 +29,21 @@ public record JoinRequest (
     @Email(message = "이메일 형식이 올바르지 않습니다")
     String email,
 
-    @Schema(description = "이메일 인증 코드", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "이메일 인증 코드는 필수입니다")
-    String emailAuthCode
+    @Schema(description = "닉네임", example = "123456", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "닉네임은 필수입니다")
+    String nickname
 ) {
     /**
      * 기본 프로필 이미지를 사용하는 팩토리 메서드
      */
     public static JoinRequest of(
+            String loginId,
             String userPw,
             String email,
-            String emailAuthCode) {
+            String nickname
+            ) {
         return new JoinRequest(
-                userPw, email, emailAuthCode);
+                loginId, userPw, email, nickname);
     }
 
     /**
@@ -46,7 +51,7 @@ public record JoinRequest (
      */
     public User toEntity(String encodedPassword) {
         return User.builder()
-                .userName(this.email.split("@")[0])
+                .loginId(this.loginId)
                 .password(encodedPassword)
                 .email(this.email)
                 .isPremium(false)
