@@ -2,6 +2,7 @@ package com.authentication.auth.dto.users;
 
 import com.authentication.auth.domain.User;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +22,7 @@ public record JoinRequest (
     String userPw,
     
     @Schema(description = "사용자 이메일 주소", example = "user@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "이메일은 필수입니다")
     @Email(message = "이메일 형식이 올바르지 않습니다")
     String email,
 
@@ -55,6 +57,7 @@ public record JoinRequest (
     /**
      * 유효성 검사
      */
+    @JsonIgnore
     public boolean isValid() {
         return userPw != null && !userPw.isBlank() &&
                email != null && !email.isBlank();
