@@ -51,7 +51,14 @@ public class TokenService {
         // Refresh Token을 HttpOnly 쿠키로 설정하는 로직은 Controller 또는 AuthController에서 담당 (P2 단계에서 진행 예정)
         // tokenProvider.setHttpOnlyCookie(response, refreshToken); 
 
-        return new LoginResponse(accessToken, refreshToken);
+        // 사용자 정보 생성 (간단한 정보만 포함)
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+            null, // userId는 토큰에서 추출 가능하므로 null
+            userId, // nickname
+            null  // email은 별도 조회가 필요하므로 null
+        );
+
+        return new LoginResponse(accessToken, userInfo);
     }
 
     @Transactional

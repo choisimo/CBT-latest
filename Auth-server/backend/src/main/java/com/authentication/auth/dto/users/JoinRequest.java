@@ -40,7 +40,7 @@ public record JoinRequest (
             String loginId,
             String userPw,
             String email,
-            String nickname,
+            String nickname
             ) {
         return new JoinRequest(
                 loginId, userPw, email, nickname);
@@ -51,7 +51,7 @@ public record JoinRequest (
      */
     public User toEntity(String encodedPassword) {
         return User.builder()
-                .userName(this.email.split("@")[0])
+                .loginId(this.loginId)
                 .password(encodedPassword)
                 .email(this.email)
                 .isPremium(false)

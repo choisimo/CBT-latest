@@ -28,6 +28,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -63,6 +64,7 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
     private final AuthProviderRepository authProviderRepository;
     private final UserAuthenticationRepository userAuthenticationRepository;
     private final RestTemplate restTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     // -------------------------------------------------------------
     // OAuth2UserService Implementation
@@ -283,7 +285,7 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
 
         if (userAuthOptional.isPresent()) {
             User user = userAuthOptional.get().getUser();
-            log.info("User found for {} with userName (login ID): {}", provider, user.getUserName());
+            log.info("User found for {} with nickname: {}", provider, user.getNickname());
             return updateUserDetails(user, userProfile, provider);
         } else {
             log.info("Creating new user for {} with oauthId: {}", provider, oauthId);
@@ -296,24 +298,25 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
         
         // Login ID (userName) 결정 로직
         String loginId = email; // 기본적으로 이메일을 loginId로 사용 시도
-        if (email == null || email.isBlank() || userRepository.existsByUserName(email)) {
+        if (email == null || email.isBlank() || userRepository.existsByNickname(email)) {
             // 이메일이 없거나, 비어있거나, 이미 사용 중인 경우 provider_oauthId를 loginId로 사용
             loginId = provider.toLowerCase() + "_" + oauthId;
-            if (userRepository.existsByUserName(loginId)) {
+            if (userRepository.existsByNickname(loginId)) {
                 // provider_oauthId도 이미 사용 중인 경우, 랜덤 UUID 일부를 추가하여 고유성 확보
                 loginId = loginId + "_" + UUID.randomUUID().toString().substring(0, 8);
             }
         }
         
         User newUser = User.builder()
-                .userName(loginId)
-                .email(email) // 이메일은 중복될 수 있으나, userName(loginId)는 고유해야 함
+                .nickname(loginId)
+                .password(passwordEncoder.encode("temp123!"))
+                .email(email)
                 .userRole("USER")
                 .isActive("ACTIVE")
                 .isPremium(false)
                 .build();
         userRepository.save(newUser);
-        log.info("New user created with userName (login ID): {}", loginId);
+        log.info("New user created with nickname: {}", loginId);
 
         AuthProvider authProvider = authProviderRepository.findByProviderName(provider.toUpperCase())
                 .orElseGet(() -> {
@@ -347,13 +350,13 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
             // 여기서는 단순 업데이트
             user.setEmail(emailFromProfile);
             updated = true;
-            log.info("User {} email updated to {}", user.getUserName(), emailFromProfile);
+            log.info("User {} email updated to {}", user.getNickname(), emailFromProfile);
         }
 
         if (!"ACTIVE".equals(user.getIsActive())) {
             user.setIsActive("ACTIVE");
             updated = true;
-            log.info("User {} status updated to ACTIVE", user.getUserName());
+            log.info("User {} status updated to ACTIVE", user.getNickname());
         }
 
         if (updated) {
@@ -439,7 +442,7 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
         User user = saveOrUpdateOauth2User(provider, oauthId, userProfile);
 
         // 애플리케이션의 Access Token 생성
-        TokenDto appAccessTokenDto = jwtUtility.buildToken(user.getUserName(), // userName (loginId) 사용
+        TokenDto appAccessTokenDto = jwtUtility.buildToken(user.getNickname(), // userName (loginId) 사용
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getUserRole())));
 
         // 애플리케이션의 Refresh Token은 P2에서 HttpOnly 쿠키로 전달 예정.
@@ -448,7 +451,7 @@ public class Oauth2Service implements OAuth2UserService<OAuth2UserRequest, OAuth
         // redisService.saveAppRefreshToken(user.getUserName(), appRefreshToken); // 앱의 리프레시 토큰 저장
         // tokenProvider.setHttpOnlyCookie(httpServletResponse, appRefreshToken); // P2에서 처리
 
-        log.info("Application access token generated for user: {}", user.getUserName());
+        log.info("Application access token generated for user: {}", user.getNickname());
         return new LoginResponse(appAccessTokenDto.accessToken(), null); // 앱의 RefreshToken은 쿠키로 전달 예정
     }
 }

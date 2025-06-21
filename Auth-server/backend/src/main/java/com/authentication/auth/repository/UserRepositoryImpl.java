@@ -21,7 +21,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         return queryFactory
                 .update(user)
                 .set(user.password, newPassword)
-                .where(user.userName.eq(userId))
+                .where(user.loginId.eq(userId))
                 .execute();
     }
 

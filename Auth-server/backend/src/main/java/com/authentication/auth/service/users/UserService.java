@@ -60,16 +60,16 @@ public class UserService {
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        User user = repository.findByUserName(request.loginId())
+        User user = repository.findByLoginId(request.loginId())
                 .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + request.loginId()));
         
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new CustomException(ErrorType.INVALID_CREDENTIALS, "비밀번호가 일치하지 않습니다.");
+            throw new CustomException(ErrorType.INVALID_REQUEST, "비밀번호가 일치하지 않습니다.");
         }
         
         // 토큰 생성
         TokenDto tokenDto = jwtUtility.buildToken(
-            user.getUserName(), 
+            user.getNickname(), 
             Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getUserRole()))
         );
         
@@ -79,8 +79,6 @@ public class UserService {
             user.getNickname(),
             user.getEmail()
         );
-        
-        log.info("로그인 성공: {}", user.getUserName());
         
         return new LoginResponse(tokenDto.accessToken(), userInfo);
     }
@@ -129,15 +127,14 @@ public class UserService {
     }
     
 
-    @Transactional(readOnly = true) // checkNicknameIsDuplicate는 읽기 전용
+    @Transactional(readOnly = true)
     public boolean checkNicknameIsDuplicate(String nickname) {
-        return repository.existsByNickname(nickname); // 닉네임은 실제로 userName 필드와 같다고 가정
+        return repository.existsByNickname(nickname);
     }
 
-    @Transactional(readOnly = true) // checkUserIdIsDuplicate는 읽기 전용
+    @Transactional(readOnly = true)
     public boolean checkUserIdIsDuplicate(Integer userId) {
-        // Integer userId로 받지만 실제로는 userName(String)으로 체크해야 함
-        // 또는 userId를 String으로 변환하여 userName으로 체크
+        // Integer userId로 받지만 실제로는 loginId(String)으로 체크해야 함
         return repository.existsByUserId(userId);
     }
 
