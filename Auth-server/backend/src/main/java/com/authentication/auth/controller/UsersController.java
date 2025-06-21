@@ -16,6 +16,8 @@ import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.UserNameCheckRequestDto;
+import com.authentication.auth.dto.users.LoginRequest;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
@@ -64,6 +66,14 @@ public class UsersController implements UserApi {
         
         return ResponseEntity.ok(ApiResponse.success(null, "회원가입 및 이메일 인증이 성공적으로 완료되었습니다."));
     }
+
+    @Override
+    @PostMapping("/login") 
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = userService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인 성공"));
+    }
+
 
     @Override
     @PostMapping("/public/profileUpload")
