@@ -1,4 +1,4 @@
- Compiled class file
+# Compiled class file
 **/*.class
 **/*.bin
 **/*.o
@@ -20,7 +20,9 @@
 .mtj.tmp/
 
 # Package Files #
-**/*.jar
+# Ignore all jar files except Gradle wrapper
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 **/*.war
 **/*.nar
 **/*.ear

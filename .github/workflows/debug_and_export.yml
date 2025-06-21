@@ -73,8 +73,8 @@ jobs:
             자세한 내용은 첨부된 테스트 리포트(index.html)를 확인하세요.
           
           # 첨부 파일: Gradle 테스트 리포트
-          files: ./Auth-server/backend/build/reports/tests/test/index.html
-          ignore_not_found: "true" # 파일이 없을 경우 무시
+          attachments: ./Auth-server/backend/build/reports/tests/test/index.html
+
 
       # 7. 순수 프로젝트 파일 생성 ('.git' 관련 내용 제거)
       - name: Create pure project copy (remove .git)
