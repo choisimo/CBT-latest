@@ -85,9 +85,9 @@ public class UsersController implements UserApi {
 
     @Override
     @PostMapping("/public/check/nickname/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserNameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
-        log.info("/check/userName/IsDuplicate : {}", requestDto.userName());
-        boolean isDuplicate = userService.checkUserNameIsDuplicate(requestDto.userName());
+    public ResponseEntity<ApiResponse<Boolean>> checkNicknameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
+        log.info("/check/nickname/IsDuplicate : {}", requestDto.nickname());
+        boolean isDuplicate = userService.checkNicknameIsDuplicate(requestDto.nickname());
         return ResponseEntity.ok(ApiResponse.success(isDuplicate, "닉네임 중복 확인이 완료되었습니다."));
     }
 
