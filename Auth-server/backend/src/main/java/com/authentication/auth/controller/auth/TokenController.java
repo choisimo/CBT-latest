@@ -34,11 +34,11 @@ public class TokenController implements TokenApi {
     @Override
     @PostMapping("/login") // Ensuring PostMapping is present as per standard practices, overriding from interface
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
-        log.info("Login attempt for user: {}", loginRequest.email());
+        log.info("Login attempt for user: {}", loginRequest.loginId());
 
         // Create authentication token
         UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password());
+                new UsernamePasswordAuthenticationToken(loginRequest.loginId(), loginRequest.password());
 
         // Authenticate user
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
