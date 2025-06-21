@@ -1,154 +1,195 @@
-# OpenAI GPT API 통합 서비스
+# CBT Diary AI Service
 
-OpenAI GPT API를 활용한 종합적인 AI 채팅 서비스입니다. CLI 도구와 웹 API 서버를 모두 제공하여 다양한 환경에서 활용할 수 있습니다.
+**OpenAI GPT API와 MongoDB를 활용한 다이어리 AI 분석 서비스**
 
-## 🎯 서비스 개요
+## 🎯 주요 기능
 
-이 프로젝트는 OpenAI GPT API를 쉽게 사용할 수 있도록 두 가지 인터페이스를 제공합니다:
+- **AI 다이어리 분석**: OpenAI GPT를 활용한 감정 분석 및 인지 왜곡 분석
+- **MongoDB 저장**: 분석 결과를 MongoDB에 구조화하여 저장
+- **RESTful API**: Auth-server와 통합 가능한 API 제공
+- **실시간 스트리밍**: 스트리밍 채팅 지원
+- **감정 통계**: 사용자별 감정 분석 통계 제공
 
-- **🤖 CLI 도구**: 터미널에서 직접 AI와 대화할 수 있는 명령줄 인터페이스
-- **🌐 웹 API**: RESTful API를 통해 웹 애플리케이션에서 활용할 수 있는 FastAPI 서버
+## 🏗️ 아키텍처
 
-## 📁 프로젝트 구조
+```
+Auth-server (MariaDB) ←→ AI Service (FastAPI + MongoDB)
+                            ↓
+                        OpenAI GPT API
+```
+
+## 📦 설치 및 실행
+
+### 1. 의존성 설치
+```bash
+pip install -r requirements.txt
+```
+
+### 2. 환경변수 설정
+`.env` 파일 생성:
+```bash
+# OpenAI API 설정
+OPENAI_API_KEY=your-openai-api-key-here
+
+# MongoDB 설정
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=ai_cbt_diary
+
+# 서비스 설정
+AI_SERVICE_HOST=0.0.0.0
+AI_SERVICE_PORT=8000
+```
+
+### 3. MongoDB 실행
+```bash
+# Docker로 MongoDB 실행
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+
+# 또는 로컬에 설치된 MongoDB 사용
+mongod
+```
+
+### 4. AI 서버 시작
+```bash
+python run_ai_server.py
+```
+
+## 📖 API 사용법
+
+### 다이어리 분석
+```bash
+curl -X POST "http://localhost:8000/diary/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 123,
+    "diaryId": 456,
+    "title": "오늘의 일기",
+    "content": "오늘은 정말 힘든 하루였다...",
+    "weather": "맑음"
+  }'
+```
+
+### 사용자 다이어리 목록 조회
+```bash
+curl "http://localhost:8000/user/123/diaries?limit=10"
+```
+
+### 감정 통계 조회
+```bash
+curl "http://localhost:8000/user/123/emotions/stats"
+```
+
+## 🗄️ MongoDB 컬렉션 구조
+
+### diaries 컬렉션
+```javascript
+{
+  "_id": "6492a48f5e3b2e1f8a7b3d9c",
+  "userId": 123,
+  "diaryId": 456,
+  "title": "오늘의 일기",
+  "content": "오늘은 정말 힘든 하루였다...",
+  "weather": "맑음",
+  "createdAt": "2025-06-21T10:00:00Z",
+  "updatedAt": "2025-06-21T10:00:00Z",
+  "report": {
+    "status": "COMPLETED",
+    "analysisDate": "2025-06-21T10:01:00Z",
+    "emotions": [
+      {"name": "슬픔", "score": 0.8},
+      {"name": "불안", "score": 0.6}
+    ],
+    "cognitiveDistortions": [
+      {
+        "type": "극단적 사고",
+        "originalSentence": "정말 힘든 하루였다",
+        "alternativeThought": "힘들었지만 극복할 수 있는 하루였다"
+      }
+    ],
+    "solutions": ["충분한 휴식 취하기", "긍정적인 활동 찾기"],
+    "confidence": 0.85,
+    "processingTime": 2.34
+  }
+}
+```
+
+## 🔧 Auth-server 통합
+
+Auth-server에서 AI 서비스 호출:
+
+```java
+@Service
+public class AiServiceClient {
+    
+    @Autowired
+    private WebClient webClient;
+    
+    public Mono<AiAnalysisResponse> analyzeDiary(Long diaryId, String content) {
+        DiaryAnalysisRequest request = DiaryAnalysisRequest.builder()
+            .userId(getCurrentUserId())
+            .diaryId(diaryId)
+            .title("일기 제목")
+            .content(content)
+            .build();
+            
+        return webClient.post()
+            .uri("http://localhost:8000/diary/analyze")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(AiAnalysisResponse.class);
+    }
+}
+```
+
+## 🎮 개발 및 테스트
+
+### 개발 모드 실행
+```bash
+python run_ai_server.py
+```
+
+### API 문서 확인
+서버 실행 후 브라우저에서:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+### MongoDB 데이터 확인
+```bash
+# MongoDB 연결
+mongo ai_cbt_diary
+
+# 컬렉션 조회
+db.diaries.find().pretty()
+```
+
+## 📝 주요 파일 구조
 
 ```
 ai/
-├── ai_cli/                   # CLI 도구 모듈
-│   ├── chatbot.py           # 대화형 챗봇 인터페이스
-│   ├── examples.py          # 다양한 사용 예제
-│   └── README.md            # CLI 도구 상세 문서
-├── ai_api/                  # API 서버 모듈
-│   ├── api_server.py        # FastAPI 서버
-│   ├── openai_service.py    # OpenAI API 서비스 클래스
-│   └── README.md            # API 서버 상세 문서
-├── main.py                  # CLI 통합 메뉴 프로그램
-├── __init__.py              # 패키지 초기화
-├── Dockerfile               # Docker 컨테이너 설정
-├── requirements.txt         # 필요한 패키지 목록
-├── setup_venv.py           # 가상환경 자동 설정 스크립트
-└── README.md               # 이 파일 (서비스 개요)
+├── ai_api/
+│   ├── api_server.py      # FastAPI 서버
+│   ├── mongo_service.py   # MongoDB 서비스
+│   ├── models.py          # 데이터 모델
+│   ├── openai_service.py  # OpenAI 서비스
+│   └── prompts.py         # AI 프롬프트
+├── config.py              # 환경 설정
+├── run_ai_server.py       # 서버 실행 스크립트
+├── requirements.txt       # 의존성
+└── README.md
 ```
 
-## 🚀 주요 기능
+## 🚀 배포
 
-### 🤖 CLI 도구 기능
-- **대화형 챗봇**: 터미널에서 실시간 AI 채팅
-- **다양한 예제**: 8가지 실용적인 사용 사례
-- **대화 기록 관리**: 채팅 내용 저장/불러오기
-- **고급 설정**: 모델 변경, 창의성 조정 등
-
-### 🌐 웹 API 기능
-- **RESTful API**: HTTP 기반 AI 채팅 서비스
-- **스트리밍 응답**: Server-Sent Events로 실시간 응답
-- **자동 문서화**: Swagger UI/ReDoc 지원
-- **CORS 지원**: 웹 애플리케이션 통합 가능
-
-### 🔧 공통 기능
-- **커스텀 프롬프트**: 시스템 프롬프트로 AI 성격 조정
-- **다중 모델 지원**: GPT-3.5, GPT-4 등 다양한 모델
-- **환경 변수 지원**: 안전한 API 키 관리
-- **Docker 지원**: 컨테이너 기반 배포
-
-## 📦 빠른 시작
-
-### 1. 환경 설정
+### Docker 배포
 ```bash
-# 프로젝트 클론 후
-cd ai
-
-# 가상환경 자동 설정
-python setup_venv.py
-
-# 가상환경 활성화 (Windows)
-venv\Scripts\activate
-
-# 가상환경 활성화 (Linux/Mac)
-source venv/bin/activate
+docker build -t cbt-diary-ai .
+docker run -p 8000:8000 cbt-diary-ai
 ```
 
-### 2. API 키 설정
-```bash
-# .env 파일에 OpenAI API 키 설정
-echo "OPENAI_API_KEY=your-api-key-here" > .env
-```
-
-### 3. 서비스 실행
-
-#### CLI 도구 실행
-```bash
-python main.py
-```
-
-#### 웹 API 서버 실행
-```bash
-uvicorn ai_api.api_server:app --reload --host 0.0.0.0 --port 8000
-```
-
-#### Docker로 실행
-```bash
-# 프로젝트 루트에서
-docker-compose up ai-service
-```
-
-## 📂 모듈별 상세 문서
-
-### 🤖 CLI 도구 (ai_cli/)
-터미널 기반 대화형 인터페이스와 예제 모음
-- **상세 문서**: [ai_cli/README.md](ai_cli/README.md)
-- **주요 기능**: 대화형 챗봇, 다양한 예제, 대화 기록 관리
-
-### 🌐 API 서비스 (ai_api/)
-FastAPI 기반 웹 서비스와 OpenAI 서비스 클래스
-- **상세 문서**: [ai_api/README.md](ai_api/README.md)
-- **주요 기능**: RESTful API, 스트리밍 응답, 자동 문서화
-
-
-
-## ⚙️ 환경 변수
-
-```env
-# 필수 설정
-OPENAI_API_KEY=your-openai-api-key
-
-# 선택적 설정
-DEFAULT_MODEL=gpt-3.5-turbo
-DEFAULT_TEMPERATURE=0.7
-DEFAULT_MAX_TOKENS=2000
-LOG_LEVEL=INFO
-```
-
-## 🛡️ 보안 고려사항
-
-- **API 키 보안**: 환경 변수로 안전하게 관리
-- **CORS 설정**: 웹 애플리케이션 통합 시 적절한 도메인 제한
-- **Rate Limiting**: API 호출 제한으로 비용 관리
-- **로깅**: 민감한 정보 제외한 적절한 로깅
-
-## 📊 모니터링
-
-- **헬스 체크**: `/health` 엔드포인트로 서비스 상태 확인
-- **로깅**: 구조화된 로그로 서비스 모니터링
-- **메트릭**: API 사용량 및 성능 지표 수집
-
-## 🚨 문제 해결
-
-### 일반적인 문제
-- **API 키 오류**: `.env` 파일 및 환경 변수 확인
-- **패키지 오류**: 가상환경 활성화 및 패키지 재설치
-- **포트 충돌**: 다른 포트 사용 또는 기존 프로세스 종료
-
-### 지원
-- **문서**: 각 모듈별 상세 README 참조
-- **예제**: `ai_cli/examples.py`의 다양한 사용 예제
-- **API 문서**: `http://localhost:8000/docs` (서버 실행 시)
-
-## 📄 라이센스
-
-이 프로젝트는 교육 및 연구 목적으로 자유롭게 사용할 수 있습니다.
+### 환경별 설정
+- `개발`: MongoDB 로컬, OpenAI API 테스트 키
+- `운영`: MongoDB Atlas, OpenAI API 운영 키
 
 ---
 
-**🎯 추천 시작 방법:**
-1. **CLI 체험**: `python main.py` → 메뉴 3번에서 예제 실행
-2. **API 테스트**: 서버 실행 후 `http://localhost:8000/docs`에서 API 테스트
-3. **통합 개발**: 각 모듈의 상세 문서를 참조하여 프로젝트에 통합 
+**Made with ❤️ for CBT Diary Project**
