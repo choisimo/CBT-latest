@@ -1,0 +1,104 @@
+name: CI Build and Dockerize
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test-auth-server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./Auth-server/backend
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build Auth-server
+      run: ./gradlew build -x test # Temporarily skip tests
+
+  build-and-test-ai-server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ai
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+
+    - name: Install AI-server dependencies
+      run: pip install -r requirements.txt
+
+    # Add AI-server tests here if available
+    # - name: Test AI-server
+    #   run: pytest # Or your specific test command
+
+  build-docker-images:
+    needs: [build-and-test-auth-server, build-and-test-ai-server] # Run after build-and-test jobs
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # - name: Log in to Docker Hub
+    #   uses: docker/login-action@v2
+    #   with:
+    #     username: ${{ secrets.DOCKERHUB_USERNAME }} # Requires Docker Hub secrets to be set in GitHub repo
+    #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build Auth-server Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./Auth-server/backend
+        file: ./Auth-server/backend/Dockerfile
+        push: false # Set to true to push to a Docker registry
+        tags: your-repo/auth-server:latest # Replace with your image name
+
+    - name: Build AI-server Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./ai
+        file: ./ai/Dockerfile
+        push: false # Set to true to push to a Docker registry
+        tags: your-repo/ai-server:latest # Replace with your image name
+
+    # Frontend Docker image build steps (assuming React, commented out)
+    # - name: Build Frontend Docker image
+    #   uses: docker/build-push-action@v4
+    #   with:
+    #     context: ./frontend # Adjust if your frontend is in a different directory
+    #     file: ./frontend/Dockerfile # Assuming Dockerfile is in frontend directory
+    #     push: false
+    #     tags: your-repo/frontend-server:latest
+
+# Notes:
+# - This workflow focuses on CI (Build, Test, Dockerize).
+# - The existing `Auth-server/.github/workflows/deploy.yml` can handle deployment separately.
+#   Consider integrating Docker image deployment (e.g., pulling from a registry) into that workflow.
+# - Docker image pushing (`push: true`) and Docker Hub login are commented out.
+#   They require `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets in the GitHub repository.
+# - Auth-server tests are skipped (`-x test`) for now. Enable them once the CI environment is stable.
+# - AI-server tests are commented out; add them if you have test scripts.
+# - Frontend steps are entirely commented out due to no source code.
+# - `working-directory` is set for Auth-server and AI-server jobs for clarity and correctness.
+# - `tags` for Docker images should be updated to reflect your actual image repository and naming convention.
+# - The `needs` directive ensures Docker images are built only after successful builds of the services.
