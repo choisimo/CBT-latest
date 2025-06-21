@@ -9,6 +9,10 @@ on:
       - '*debug*'
       - '*develop*'
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   archive:
     # 워크플로가 생성한 커밋에 대해서는 다시 워크플로가 실행되지 않도록 하여 무한 루프를 방지합니다.
