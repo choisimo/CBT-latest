@@ -34,7 +34,7 @@ public class UserService {
 
         try {
             User newUser = User.builder()
-                    .userName(request.email().split("@")[0] + "_" + java.util.UUID.randomUUID().toString()) // 이메일 명 앞부분을 기본 닉네임으로 사용 + UUID
+                    .nickname(request.nickname())
                     .password(passwordEncoder.encode(request.userPw()))
                     .email(request.email())
                     .isPremium(false)

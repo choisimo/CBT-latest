@@ -34,7 +34,7 @@ public class User {
      * 사용자 로그인 ID 및 대표 닉네임 (DB의 user_name 컬럼)
      */
     @Column(name = "user_name", nullable = false, length = 50, unique = true)
-    private String userName;
+    private String nickname;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
