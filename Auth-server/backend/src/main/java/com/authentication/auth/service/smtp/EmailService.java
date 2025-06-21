@@ -143,10 +143,11 @@ public class EmailService {
         log.info("Custom email sent to {}", to_email);
     }
 
+
     public boolean checkIsExistEmail(String userEmail){
         if (userEmail == null || userEmail.isBlank()) {
             // 또는 ErrorType.INVALID_REQUEST_PARAMETER 등을 사용하여 CustomException throw
-            return false; 
+            throw new CustomException(ErrorType.INVALID_REQUEST_PARAMETER, "이메일 주소가 비어있습니다.");
         }
         return userRepository.existsByEmail(userEmail);
     }
