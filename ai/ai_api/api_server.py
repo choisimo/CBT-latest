@@ -57,6 +57,17 @@ class ChatResponse(BaseModel):
     model: str
     timestamp: str
 
+class DiaryAnalysisRequest(BaseModel):
+    title: str
+    content: str
+    userId: Optional[str] = None
+
+class DiaryAnalysisResponse(BaseModel):
+    response: str
+    usage: Optional[Dict[str, Any]] = None
+    model: str
+    timestamp: str
+
 class StreamingChatRequest(BaseModel):
     message: str
     conversation_history: Optional[List[Dict[str, str]]] = []
@@ -98,6 +109,45 @@ async def health_check():
             "error": str(e),
             "timestamp": datetime.now().isoformat()
         }
+
+@app.post("/diary/analyze", response_model=DiaryAnalysisResponse)
+async def analyze_diary(request: DiaryAnalysisRequest):
+    """일기 분석 API - 감정 분석 및 코칭 제공"""
+    try:
+        logger.info(f"일기 분석 요청 - 제목: {request.title}")
+        
+        # 일기 내용을 JSON 형태로 구성
+        diary_content = {
+            "title": request.title,
+            "content": request.content
+        }
+        
+        diary_message = json.dumps(diary_content, ensure_ascii=False)
+        
+        # 대화 기록 준비
+        messages = [
+            {"role": "system", "content": DIARY_EMOTION_ANALYSIS_PROMPT},
+            {"role": "user", "content": diary_message}
+        ]
+        
+        # OpenAI API 호출
+        response = openai_service.chat_with_history(
+            messages=messages,
+            model="gpt-3.5-turbo",
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        return DiaryAnalysisResponse(
+            response=response["content"],
+            usage=response.get("usage"),
+            model="gpt-3.5-turbo",
+            timestamp=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"일기 분석 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"일기 분석 중 오류가 발생했습니다: {str(e)}")
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
