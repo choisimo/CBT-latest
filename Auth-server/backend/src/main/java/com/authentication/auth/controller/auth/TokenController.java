@@ -51,6 +51,16 @@ public class TokenController {
     //     return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
     // }
 
+    @PostMapping({"/api/public/login", "/api/auth/login"})
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse) {
+        log.info("Login attempt: {}", loginRequest.identifier());
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(loginRequest.identifier(), loginRequest.password());
+        Authentication authentication = authenticationManager.authenticate(authToken);
+        LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
+    }
+
     @PostMapping("/refresh") // Ensuring PostMapping is present
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody TokenRefreshRequest request) throws IOException {
 

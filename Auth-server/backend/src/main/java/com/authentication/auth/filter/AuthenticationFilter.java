@@ -39,7 +39,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final RedisService redisService;
     private final String cookieDomain;
     private final int accessTokenValidity;
-    private final AntPathRequestMatcher requestMatcher;
+    private final AntPathRequestMatcher authLoginMatcher;
 
     private static final String SPRING_SECURITY_FORM_USERNAME_KEY = "loginId";
     private static final String SPRING_SECURITY_FORM_PASSWORD_KEY = "password";
@@ -57,12 +57,12 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         this.redisService = redisService;
         this.cookieDomain = cookieDomain;
         this.accessTokenValidity = accessTokenValidity;
-        this.requestMatcher = new AntPathRequestMatcher("/api/auth/login", "POST");
+        this.authLoginMatcher = new AntPathRequestMatcher("/api/auth/login", "POST");
     }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
-        if (!requestMatcher.matches(request)) {
+        if (!authLoginMatcher.matches(request)) {
             filterChain.doFilter(request, response);
             return;
         }
