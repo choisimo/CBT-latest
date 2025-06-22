@@ -320,4 +320,42 @@ public class RedisService {
             return false;
         }
     }
+
+    /**
+     * Save a simple key-value pair with TTL (seconds).
+     * Utility for lightweight usages such as OAuth2 state parameter.
+     */
+    @Transactional
+    public void save(String key, String value, long ttlSeconds) {
+        try {
+            redisTemplate.opsForValue().set(key, value, ttlSeconds, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("Redis generic save failed: key={}, value={}", key, value, e);
+        }
+    }
+
+    /**
+     * Retrieve a simple string value by key.
+     */
+    @Transactional(readOnly = true)
+    public String get(String key) {
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("Redis generic get failed: key={}", key, e);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a key from Redis.
+     */
+    @Transactional
+    public void delete(String key) {
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            log.error("Redis generic delete failed: key={}", key, e);
+        }
+    }
 }
