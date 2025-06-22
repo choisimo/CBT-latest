@@ -10,6 +10,6 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
     @Override
     protected String getDatabaseName() {
-        return "cbt_diary";
+        return "oss_emotion";
     }
 } 
