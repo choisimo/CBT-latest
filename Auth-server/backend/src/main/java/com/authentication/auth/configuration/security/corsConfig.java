@@ -54,7 +54,13 @@ public class corsConfig {
         log.info("Active Spring profile: {}", activeProfile);
         log.info("Configuring CORS for allowed origins: {}", allowedOriginsConfig);
 
-        corsConfiguration.setAllowedOrigins(allowedOriginsConfig);
+        // If a wildcard "*" is present, switch to allowedOriginPatterns to comply with
+        // Spring's rule: allowCredentials=true cannot be combined with "*" in allowedOrigins
+        if (allowedOriginsConfig.size() == 1 && "*".equals(allowedOriginsConfig.get(0))) {
+            corsConfiguration.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            corsConfiguration.setAllowedOrigins(allowedOriginsConfig);
+        }
         // Dynamically add origin patterns when configured
         List<String> patternConfig;
         if ("dev".equalsIgnoreCase(activeProfile)) {
