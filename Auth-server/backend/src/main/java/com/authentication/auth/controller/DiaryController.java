@@ -16,7 +16,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/diary")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class DiaryController {
 
     private final DiaryService diaryService;
