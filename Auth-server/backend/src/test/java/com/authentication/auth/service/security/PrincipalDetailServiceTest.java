@@ -37,7 +37,7 @@ public class PrincipalDetailServiceTest {
                 .id(1L)
                 .email("test@example.com")
                 .password("password")
-                .userName("testuser")
+                .loginId("testuser")
                 .userRole("USER")
                 .build();
     }

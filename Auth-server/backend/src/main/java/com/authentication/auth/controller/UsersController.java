@@ -1,11 +1,11 @@
 package com.authentication.auth.controller;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
+
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,8 +41,7 @@ import jakarta.validation.Valid;
 @Slf4j
 public class UsersController {
 
-    @Value("${site.domain}")
-    private String domain;
+    
     
     private final UserService userService;
     private final EmailService emailService;
@@ -66,12 +65,8 @@ public class UsersController {
         return ResponseEntity.ok(ApiResponse.success(null, "회원가입 및 이메일 인증이 성공적으로 완료되었습니다."));
     }
 
-    @PostMapping("/login") 
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse loginResponse = userService.login(request);
-        return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인 성공"));
-    }
-
+    // Login is now handled by AuthenticationFilter at /api/login
+    // Removed the duplicate login endpoint to avoid conflicts
 
     @PostMapping("/public/profileUpload")
     public ResponseEntity<ApiResponse<Map<String, String>>> fileUpload(@RequestParam("profile") MultipartFile[] files) {
@@ -111,56 +106,11 @@ public class UsersController {
         return ResponseEntity.ok(ApiResponse.success(isDuplicate, "로그인 ID 중복 확인이 완료되었습니다."));
     }
 
-    @PostMapping("/public/clean/userTokenCookie")
-    public ResponseEntity<ApiResponse<String>> cleanUserTokenCookie(HttpServletRequest request, HttpServletResponse response) {
-        String cookieName = "refreshToken";
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookieName.equals(cookie.getName())) {
-                    cookie.setMaxAge(0);
-                    cookie.setPath("/");
-                    cookie.setHttpOnly(true);
-                    response.addCookie(cookie);
-                }
-            }
-        }
-        return ResponseEntity.ok(ApiResponse.success(null, "리프레시 토큰이 성공적으로 삭제되었습니다."));
-    }
+    
 
-    /**
-     * 새로운 쿠키를 프론트엔드에 전송합니다.
-     */
-    private void sendFrontNewCookie(HttpServletResponse response, int status, TokenDto tokendto) {
-        response.setStatus(status);
-        response.addHeader(SecurityConstants.TOKEN_HEADER.getValue(), SecurityConstants.TOKEN_PREFIX.getValue() + tokendto.accessToken());
-        Cookie refreshTokenCookie = new Cookie("refreshToken", tokendto.refreshToken());
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setDomain(domain);
-        refreshTokenCookie.setPath("/");
-        response.addCookie(refreshTokenCookie);
-    }
+    
 
-    /**
-     * 요청에서 리프레시 토큰을 추출합니다.
-     */
-    private String getRefreshTokenFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("refreshToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        log.error("[getRefreshTokenFromCookie] cookie 에서 refreshToken 찾기 실패");
-        return null;
-    }
+    
 
-    /**
-     * Redis에서 리프레시 토큰 일치 여부를 확인합니다.
-     */
-    private boolean RedisMatchRToken(String userId, String RToken) {
-        return redisService.findRToken(userId, "server", RToken);
-    }
+    
 }

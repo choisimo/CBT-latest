@@ -60,8 +60,10 @@ public class UserService {
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        User user = repository.findByLoginId(request.loginId())
-                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + request.loginId()));
+        String identifier = request.identifier();
+        User user = repository.findByEmail(identifier)
+                .orElseGet(() -> repository.findByLoginId(identifier)
+                        .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + identifier)));
         
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new CustomException(ErrorType.INVALID_REQUEST, "비밀번호가 일치하지 않습니다.");

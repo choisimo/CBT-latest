@@ -65,20 +65,21 @@ class UsersControllerTest {
     }
 
     private static Stream<Arguments> provideInvalidJoinRequests() {
-        // Based on JoinRequest(userPw, email, emailAuthCode)
-        // Validations:
+        // JoinRequest(loginId, userPw, email, nickname)
+        // 유효성 검증:
+        // loginId: @NotBlank
         // userPw: @NotBlank, @Size(min = 8)
-        // email: @Email (implies @NotBlank essentially)
-        // emailAuthCode: @NotBlank
+        // email: @NotBlank, @Email
+        // nickname: @NotBlank
         return Stream.of(
-                Arguments.of("비밀번호 null", new JoinRequest(null, "test@example.com", "123456")),
-                Arguments.of("비밀번호 공백", new JoinRequest("", "test@example.com", "123456")),
-                Arguments.of("비밀번호 너무 짧음 (7자)", new JoinRequest("pass123", "test@example.com", "123456")),
-                Arguments.of("이메일 null", new JoinRequest("password123", null, "123456")),
-                Arguments.of("이메일 공백", new JoinRequest("password123", "", "123456")),
-                Arguments.of("이메일 형식 아님", new JoinRequest("password123", "invalid-email", "123456")),
-                Arguments.of("이메일 인증 코드 null", new JoinRequest("password123", "test@example.com", null)),
-                Arguments.of("이메일 인증 코드 공백", new JoinRequest("password123", "test@example.com", ""))
+                Arguments.of("비밀번호 null", new JoinRequest("user123", null, "test@example.com", "nick")),
+                Arguments.of("비밀번호 공백", new JoinRequest("user123", "", "test@example.com", "nick")),
+                Arguments.of("비밀번호 너무 짧음 (7자)", new JoinRequest("user123", "pass123", "test@example.com", "nick")),
+                Arguments.of("이메일 null", new JoinRequest("user123", "password123", null, "nick")),
+                Arguments.of("이메일 공백", new JoinRequest("user123", "password123", "", "nick")),
+                Arguments.of("이메일 형식 아님", new JoinRequest("user123", "password123", "invalid-email", "nick"))
+                // Removed emailAuthCode tests as JoinRequest no longer contains that field
+                // Removed emailAuthCode tests
         );
     }
 
