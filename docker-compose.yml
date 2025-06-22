@@ -33,15 +33,9 @@ services:
     environment:
       - OPENAI_API_KEY=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
       
-      # MongoDB 설정 (auth-server와 동일한 MongoDB 사용)
-      - MONGODB_URL=mongodb://mongodb-container:27017/oss_emotion
-      - MONGODB_DATABASE=oss_emotion
-      
       # 서비스 설정
       - AI_SERVICE_HOST=0.0.0.0
       - AI_SERVICE_PORT=8000
-    depends_on:
-      - mongodb-container
     networks:
       - cbt-network
     restart: unless-stopped
