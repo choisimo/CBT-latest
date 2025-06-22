@@ -3,6 +3,8 @@ package com.authentication.auth.service;
 import com.authentication.auth.domain.AIResponse;
 import com.authentication.auth.dto.*;
 import com.authentication.auth.repository.AIResponseRepository;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,8 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+
+
+import jakarta.annotation.PostConstruct;
 
 
 import java.time.LocalDateTime;
@@ -38,7 +41,15 @@ public class DiaryService {
     @Value("${ai.server.url}")
     private String aiServerUrl;
 
-
+    /**
+     * ObjectMapper 설정을 조정하여 제어 문자들을 허용
+     */
+    @PostConstruct
+    private void configureObjectMapper() {
+        objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+        objectMapper.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, true);
+        log.info("ObjectMapper configured to allow unquoted control characters");
+    }
 
     /**
      * 일기 분석 및 AI 응답 생성
@@ -104,14 +115,9 @@ public class DiaryService {
      * AI 응답 파싱
      */
     private AIResponse parseAIResponse(String aiResponseStr, DiaryRequestDto diaryRequest) throws JsonProcessingException {
-        
         log.debug("원본 AI 응답: {}", aiResponseStr);
-         // 줄바꿈 문자와 기타 제어 문자들을 이스케이프 처리
-        String sanitizedResponse = sanitizeJsonString(aiResponseStr);
-        log.debug("정제된 AI 응답: {}", sanitizedResponse);
-    
 
-        JsonNode jsonNode = objectMapper.readTree(sanitizedResponse);
+        JsonNode jsonNode = objectMapper.readTree(aiResponseStr);
         JsonNode aiResponseNode = jsonNode.get("aiResponse");
 
         if (aiResponseNode == null) {
@@ -131,13 +137,6 @@ public class DiaryService {
             }
         }
 
-        // 줄바꿈 문자와 기타 제어 문자들을 이스케이프 처리
-        String sanitizedResponse = sanitizeJsonString(aiResponseStr);
-        log.debug("정제된 AI 응답: {}", sanitizedResponse);
-    
-        JsonNode jsonNode = objectMapper.readTree(sanitizedResponse);
-        JsonNode aiResponseNode = jsonNode.get("aiResponse");
-
         // AIResponse 엔티티 생성
         LocalDateTime now = LocalDateTime.now();
         
@@ -153,20 +152,7 @@ public class DiaryService {
             .build();
     }
 
-    private String sanitizeJsonString(String jsonStr) {
-        if (jsonStr == null) {
-            return null;
-        }
-        
-        return jsonStr
-            .replace("\n", "\\n")      // 줄바꿈
-            .replace("\r", "\\r")      // 캐리지 리턴
-            .replace("\t", "\\t")      // 탭
-            .replace("\b", "\\b")      // 백스페이스
-            .replace("\f", "\\f")      // 폼피드
-            .replace("\"", "\\\"")     // 따옴표 (이미 이스케이프된 경우 중복 처리 방지)
-            .replaceAll("\\\\\"", "\\\""); // 중복 이스케이프 제거
-    }
+    
 
     /**
      * 모든 AI 응답 조회 (특정 사용자)
