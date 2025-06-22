@@ -10,7 +10,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb-container:3306/oss_emotion?useUnicode=true&characterEncoding=UTF-8
       - SPRING_DATASOURCE_USERNAME=nodove
       - SPRING_DATASOURCE_PASSWORD=dover1234!
-      - SPRING_DATA_MONGODB_URI=mongodb://nodove:dover2718281!@mongodb-container:27017/oss_emotion?authSource=admin
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb-container:27017/oss_emotion
       - SPRING_DATA_REDIS_HOST=redis-container
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_DATA_REDIS_PASSWORD=
@@ -34,8 +34,8 @@ services:
       - OPENAI_API_KEY=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
       
       # MongoDB 설정 (auth-server와 동일한 MongoDB 사용)
-      - MONGODB_URL=mongodb://nodove:dover2718281!@mongodb-container:27017/ai_cbt_diary?authSource=admin
-      - MONGODB_DATABASE=ai_cbt_diary
+      - MONGODB_URL=mongodb://mongodb-container:27017/oss_emotion
+      - MONGODB_DATABASE=oss_emotion
       
       # 서비스 설정
       - AI_SERVICE_HOST=0.0.0.0
@@ -74,9 +74,10 @@ services:
     container_name: mongodb-db
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=nodove
-      - MONGO_INITDB_ROOT_PASSWORD=dover2718281!
+    # 개발 환경을 위해 인증 비활성화
+    # environment:
+    #   - MONGO_INITDB_ROOT_USERNAME=nodove
+    #   - MONGO_INITDB_ROOT_PASSWORD=dover2718281!
     volumes:
       - mongodb_data:/data/db
     networks:
