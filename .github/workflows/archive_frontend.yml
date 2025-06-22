@@ -1,62 +1,62 @@
-# .github/workflows/archive_frontend.yml
+# # .github/workflows/archive_frontend.yml
 
-name: Archive Frontend Submodule
+# name: Archive Frontend Submodule
 
-on:
-  push:
-    branches:
-      - '*test*'
-      - '*debug*'
-      - '*develop*'
+# on:
+#   push:
+#     branches:
+#       - '*test*'
+#       - '*debug*'
+#       - '*develop*'
 
-permissions:
-  contents: write
-  id-token: write
+# permissions:
+#   contents: write
+#   id-token: write
 
-jobs:
-  archive:
-    # 워크플로가 생성한 커밋에 대해서는 다시 워크플로가 실행되지 않도록 하여 무한 루프를 방지합니다.
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+# jobs:
+#   archive:
+#     # 워크플로가 생성한 커밋에 대해서는 다시 워크플로가 실행되지 않도록 하여 무한 루프를 방지합니다.
+#     if: "!contains(github.event.head_commit.message, '[ci skip]')"
 
-    runs-on: ubuntu-latest
+#     runs-on: ubuntu-latest
 
-    steps:
-      # 1. 리포지토리 코드와 서브모듈을 함께 체크아웃합니다.
-      - name: Checkout repository and submodules
-        uses: actions/checkout@v4
-        with:
-          # 서브모듈을 재귀적으로 포함하여 체크아웃합니다.
-          submodules: 'recursive'
-          # 워크플로에서 생성한 커밋을 푸시하려면 GITHUB_TOKEN이 필요합니다.
-          token: ${{ secrets.GITHUB_TOKEN }}
+#     steps:
+#       # 1. 리포지토리 코드와 서브모듈을 함께 체크아웃합니다.
+#       - name: Checkout repository and submodules
+#         uses: actions/checkout@v4
+#         with:
+#           # 서브모듈을 재귀적으로 포함하여 체크아웃합니다.
+#           submodules: 'recursive'
+#           # 워크플로에서 생성한 커밋을 푸시하려면 GITHUB_TOKEN이 필요합니다.
+#           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. 백업 폴더명으로 사용할 현재 시간 생성 (YYYY-MM-DD-HH-MM 형식)
-      - name: Get current timestamp
-        run: echo "TIMESTAMP=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
+#       # 2. 백업 폴더명으로 사용할 현재 시간 생성 (YYYY-MM-DD-HH-MM 형식)
+#       - name: Get current timestamp
+#         run: echo "TIMESTAMP=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
 
-      # 3. 서브모듈 파일들을 새로운 타임스탬프 폴더로 복사
-      - name: Copy submodule contents
-        run: |
-          mkdir -p CBT-front-copy/${{ env.TIMESTAMP }}
-          echo "Copying CBT-front contents to CBT-front-copy/${{ env.TIMESTAMP }}"
-          # -a 옵션은 소유자, 권한 등 속성을 유지하며 복사합니다.
-          cp -a CBT-front/* CBT-front-copy/${{ env.TIMESTAMP }}/
+#       # 3. 서브모듈 파일들을 새로운 타임스탬프 폴더로 복사
+#       - name: Copy submodule contents
+#         run: |
+#           mkdir -p CBT-front-copy/${{ env.TIMESTAMP }}
+#           echo "Copying CBT-front contents to CBT-front-copy/${{ env.TIMESTAMP }}"
+#           # -a 옵션은 소유자, 권한 등 속성을 유지하며 복사합니다.
+#           cp -a CBT-front/* CBT-front-copy/${{ env.TIMESTAMP }}/
 
-      # 4. 변경사항을 커밋하고 푸시
-      - name: Commit and push changes
-        run: |
-          # Git 사용자 설정
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+#       # 4. 변경사항을 커밋하고 푸시
+#       - name: Commit and push changes
+#         run: |
+#           # Git 사용자 설정
+#           git config user.name "github-actions[bot]"
+#           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 변경사항 스테이징
-          git add CBT-front-copy/
+#           # 변경사항 스테이징
+#           git add CBT-front-copy/
           
-          # 커밋할 변경사항이 있는지 확인
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            # [ci skip] 메시지를 포함하여 이 커밋으로 인해 워크플로가 다시 실행되는 것을 방지
-            git commit -m "ci: Archive frontend from submodule [ci skip]"
-            git push
-          fi
+#           # 커밋할 변경사항이 있는지 확인
+#           if git diff --staged --quiet; then
+#             echo "No changes to commit."
+#           else
+#             # [ci skip] 메시지를 포함하여 이 커밋으로 인해 워크플로가 다시 실행되는 것을 방지
+#             git commit -m "ci: Archive frontend from submodule [ci skip]"
+#             git push
+#           fi

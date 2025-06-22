@@ -1,1 +1,0 @@
-/home/nodove/workspace/CBT-Diary/React_Native-main/React_Native-main/android/app/build/intermediates/cxx/Debug/5d2s2q10/obj/x86
