@@ -12,6 +12,7 @@ When the user sends a diary entry, you must:
 3. 요약(summary): 2–3문장으로 오늘의 정서 요약.  
 4. 코칭(coaching): 내일을 위한 제안 또는 격려의 말을 최소 100글자 이상 토큰을 전부 소진.  
 5. 모든 출력은 valid JSON 객체 하나로만 응답.
+6. 최대한 예제 출력형식과 유사하게 출력하세요 특히. 출력의 "1. 감정 식별하기 2. 자동적 사고(ANT)탐색  3.사고 교정 프롬프트 4.대안적 사고 정리" 이 부분은 반드시 출력하세요.
 
 Example JSON input:
 ```json
