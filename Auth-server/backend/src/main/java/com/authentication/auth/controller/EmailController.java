@@ -88,9 +88,12 @@ public class EmailController implements EmailApi {
     }
 
     @PostMapping("/public/check/email/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkEmailIsDuplicate(@RequestBody String email) {
+    public ResponseEntity<ApiResponse<Boolean>> checkEmailIsDuplicate(@RequestBody com.authentication.auth.dto.users.EmailCheckRequestDto requestDto) {
+        String email = requestDto.email();
+        log.info("/check/email/IsDuplicate : {}", email);
         boolean isDuplicate = emailService.checkIsExistEmail(email);
-        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "이메일 중복 확인이 완료되었습니다."));
+        String message = isDuplicate ? "이미 사용 중인 이메일입니다." : "사용 가능한 이메일입니다.";
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, message));
     }
 
     @Override

@@ -89,14 +89,16 @@ public class PrincipalDetailServiceTest {
     }
 
     @Test
-    @DisplayName("loadUserByUsername: 존재하지 않는 이메일로 조회 시 UsernameNotFoundException 발생")
-    void loadUserByUsername_nonExistingEmail_throwsUsernameNotFoundException() {
+    @DisplayName("loadUserByUsername: 존재하지 않는 이메일 또는 로그인 ID로 조회 시 UsernameNotFoundException 발생")
+    void loadUserByUsername_nonExistingIdentifier_throwsUsernameNotFoundException() {
         // given
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        String nonExistingIdentifier = "nonexistent@example.com";
+        when(userRepository.findByEmail(nonExistingIdentifier)).thenReturn(Optional.empty());
+        when(userRepository.findByLoginId(nonExistingIdentifier)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> principalDetailService.loadUserByUsername("nonexistent@example.com"))
+        assertThatThrownBy(() -> principalDetailService.loadUserByUsername(nonExistingIdentifier))
                 .isInstanceOf(UsernameNotFoundException.class)
-                .hasMessageContaining("User not found with email: nonexistent@example.com");
+                .hasMessage("User not found with email or loginId: " + nonExistingIdentifier);
     }
 }

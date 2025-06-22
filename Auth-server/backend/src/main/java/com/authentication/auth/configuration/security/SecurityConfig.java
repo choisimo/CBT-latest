@@ -2,8 +2,16 @@ package com.authentication.auth.configuration.security;
 
 import com.authentication.auth.service.security.PrincipalDetailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.authentication.auth.filter.FilterRegistry;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.authentication.auth.filter.AuthenticationFilter;
+import com.authentication.auth.filter.AuthorizationFilter;
+import com.authentication.auth.filter.JwtVerificationFilter;
+
+import com.authentication.auth.configuration.token.JwtUtility;
+import com.authentication.auth.service.redis.RedisService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +22,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -29,22 +41,26 @@ public class SecurityConfig {
      */
     private final CorsConfigurationSource corsConfigurationSource;
     private final PrincipalDetailService principalDetailService; // Used for non-OAuth login
-    private final FilterRegistry filterRegistry;
-    
-    private final com.authentication.auth.configuration.security.handler.CustomOAuth2AuthenticationSuccessHandler customOAuth2AuthenticationSuccessHandler; // Inject custom success handler
-    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService;
+    private final JwtUtility jwtUtility;
+    private final RedisService redisService;
+    private final ObjectMapper objectMapper;
+
+    @Value("${server.cookie.domain}")
+    private String cookieDomain;
+
+    @Value("${ACCESS_TOKEN_VALIDITY}")
+    private int accessTokenValidity;
 
     public SecurityConfig(CorsConfigurationSource corsConfigurationSource,
                           PrincipalDetailService principalDetailService,
-                          FilterRegistry filterRegistry,
-                          com.authentication.auth.configuration.security.handler.CustomOAuth2AuthenticationSuccessHandler customOAuth2AuthenticationSuccessHandler,
-                          OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService) {
+                          JwtUtility jwtUtility,
+                          RedisService redisService,
+                          ObjectMapper objectMapper) {
         this.corsConfigurationSource = corsConfigurationSource;
         this.principalDetailService = principalDetailService;
-        this.filterRegistry = filterRegistry;
-        
-        this.customOAuth2AuthenticationSuccessHandler = customOAuth2AuthenticationSuccessHandler;
-        this.oauth2UserService = oauth2UserService;
+        this.jwtUtility = jwtUtility;
+        this.redisService = redisService;
+        this.objectMapper = objectMapper;
     }
 
     // Define restriction arrays - initialize as empty, to be populated as needed
@@ -88,50 +104,47 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // cors
         http.cors(cors -> cors.configurationSource(corsConfigurationSource));
-        // 폼 로그인 비활성화
-        http.formLogin(AbstractHttpConfigurer::disable);
-        // Cross-Site Request Forgery 공격 방어 비활성화
+        // CSRF 비활성화 (API 서버이므로)
         http.csrf(AbstractHttpConfigurer::disable);
-        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin())); // Add this line
         // HTTP 기본 인증 비활성화
         http.httpBasic(AbstractHttpConfigurer::disable);
-        // session 기반 로그인 비활성화
+        // formLogin 비활성화
+        http.formLogin(AbstractHttpConfigurer::disable);
+
+        // 세션 정책을 STATELESS로 설정
         http.sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // filter
-        filterRegistry.configureFilters(http); // This custom registry might do other things
-
+        // 필터 체인 구성
+        AuthenticationManager authenticationManager = authenticationManager(http.getSharedObject(AuthenticationConfiguration.class));
         
-         // authorization
-         http.authorizeHttpRequests((authorize) -> {
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(
+                authenticationManager,
+                jwtUtility,
+                objectMapper,
+                redisService,
+                cookieDomain,
+                accessTokenValidity
+        );
+
+        JwtVerificationFilter jwtVerificationFilter = new JwtVerificationFilter(jwtUtility, objectMapper);
+        AuthorizationFilter authorizationFilter = new AuthorizationFilter(objectMapper);
+
+        http
+            .addFilterAt(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtVerificationFilter, AuthenticationFilter.class)
+            .addFilterAfter(authorizationFilter, JwtVerificationFilter.class);
+
+        // 인가 규칙 설정
+        http.authorizeHttpRequests((authorize) -> {
             authorize
                     .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                     .requestMatchers(PUBLIC_URLS).permitAll()
                     .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN")
-                    .requestMatchers(userRestrict).hasAnyAuthority("ADMIN", "USER", "COMPANY") // Assuming these are more specific secured paths
-                    .requestMatchers(adminRestrict).hasAnyAuthority("ADMIN")
-                    .requestMatchers(companyRestrict).hasAnyAuthority("COMPANY", "ADMIN")
-                    .anyRequest().authenticated(); // Secure all other requests
+                    .anyRequest().authenticated();
         });
 
-        // The formLogin below is typically for stateful applications.
-        // For a stateless API with JWT, this is usually not needed, as login is handled by a custom endpoint (e.g., /api/public/user/login).
-        // If still using server-side rendered pages with Thymeleaf for login, it might be kept, but ensure it aligns with stateless strategy.
-        // http.formLogin(formLogin -> formLogin
-        //        .loginPage("/login").defaultSuccessUrl("/"));
-
-        // 사용자 정보 서비스 및 암호화 설정 (for username/password flow)
+        // 사용자 정보 서비스 설정
         http.userDetailsService(principalDetailService);
-
-        // OAUTH 로그인 설정
-        http.oauth2Login(oauth2 -> oauth2
-                // .loginPage("/login") // Optional: if you have a custom login page that triggers OAuth
-                .userInfoEndpoint(userInfo -> userInfo
-                        .userService(oauth2UserService) // Custom OAuth2UserService
-                )
-                .successHandler(customOAuth2AuthenticationSuccessHandler) // Custom success handler for deep linking
-                // .failureHandler(customOAuth2AuthenticationFailureHandler) // Optional: Custom failure handler
-        );
 
         return http.build();
     }
@@ -144,7 +157,10 @@ public class SecurityConfig {
      */
     @Bean
     public static ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 
     /**
@@ -156,6 +172,11 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
 }

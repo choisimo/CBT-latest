@@ -37,17 +37,24 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 @Slf4j
 public class UsersController {
 
-    
-    
     private final UserService userService;
     private final EmailService emailService;
     private final RedisService redisService;
     private final JwtUtility jwtUtility;
     private final FileService fileService;
+
+    public UsersController(UserService userService, EmailService emailService, RedisService redisService, JwtUtility jwtUtility, FileService fileService) {
+        this.userService = userService;
+        this.emailService = emailService;
+        this.redisService = redisService;
+        this.jwtUtility = jwtUtility;
+        this.fileService = fileService;
+    }
+
+
 
     @PostMapping("/public/join")
     public ResponseEntity<ApiResponse<String>> join(@Valid @RequestBody JoinRequest request) throws Exception {
@@ -89,21 +96,26 @@ public class UsersController {
     public ResponseEntity<ApiResponse<Boolean>> checkNicknameIsDuplicate(@RequestBody UserNameCheckRequestDto requestDto) {
         log.info("/check/nickname/IsDuplicate : {}", requestDto.nickname());
         boolean isDuplicate = userService.checkNicknameIsDuplicate(requestDto.nickname());
-        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "닉네임 중복 확인이 완료되었습니다."));
+        String message = isDuplicate ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, message));
     }
 
     @PostMapping("/public/check/userId/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody Integer userId) {
+    public ResponseEntity<ApiResponse<Boolean>> checkUserIdIsDuplicate(@RequestBody com.authentication.auth.dto.users.UserIdCheckRequestDto requestDto) {
+        Integer userId = requestDto.userId();
         log.info("/check/userId/IsDuplicate : {}", userId);
         boolean isDuplicate = userService.checkUserIdIsDuplicate(userId);
-        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "사용자 ID 중복 확인이 완료되었습니다."));
+        String message = isDuplicate ? "이미 사용 중인 사용자 ID입니다." : "사용 가능한 사용자 ID입니다.";
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, message));
     }
 
     @PostMapping("/public/check/loginId/IsDuplicate")
-    public ResponseEntity<ApiResponse<Boolean>> checkLoginIdIsDuplicate(@RequestBody String loginId) {
+    public ResponseEntity<ApiResponse<Boolean>> checkLoginIdIsDuplicate(@RequestBody com.authentication.auth.dto.users.LoginIdCheckRequestDto requestDto) {
+        String loginId = requestDto.loginId();
         log.info("/check/loginId/IsDuplicate : {}", loginId);
         boolean isDuplicate = userService.checkLoginIdIsDuplicate(loginId);
-        return ResponseEntity.ok(ApiResponse.success(isDuplicate, "로그인 ID 중복 확인이 완료되었습니다."));
+        String message = isDuplicate ? "이미 사용 중인 로그인 ID입니다." : "사용 가능한 로그인 ID입니다.";
+        return ResponseEntity.ok(ApiResponse.success(isDuplicate, message));
     }
 
     

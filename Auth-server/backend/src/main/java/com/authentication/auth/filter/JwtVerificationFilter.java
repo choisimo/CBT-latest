@@ -1,26 +1,20 @@
 package com.authentication.auth.filter;
 
-import com.authentication.auth.dto.response.ApiResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
-import com.authentication.auth.exception.ErrorType;
-import com.authentication.auth.filter.SecurityFilterOrder;
-import com.authentication.auth.others.constants.SecurityConstants;
 import com.authentication.auth.configuration.token.JwtUtility;
+import com.authentication.auth.dto.response.ApiResponse;
+import com.authentication.auth.exception.ErrorType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
@@ -29,45 +23,19 @@ import java.io.IOException;
  * 요청에 포함된 JWT 토큰을 검증하고 사용자 인증 정보를 설정
  */
 @Slf4j
-@Component
-public class JwtVerificationFilter extends AbstractSecurityFilter {
+public class JwtVerificationFilter extends OncePerRequestFilter {
 
     private final JwtUtility jwtUtility;
     private final ObjectMapper objectMapper;
-    private final FilterRegistry filterRegistry;
 
     /**
      * JwtVerificationFilter 생성자
      * @param jwtUtility JWT 토큰 생성 및 검증 유틸리티
      * @param objectMapper JSON 직렬화/역직렬화를 위한 ObjectMapper
-     * @param filterRegistry 필터 레지스트리
-     * @Description 의존성 주입 및 부모 클래스 생성자 호출 (필터 순서 설정)
      */
-    @Autowired
-    public JwtVerificationFilter(
-            JwtUtility jwtUtility,
-            ObjectMapper objectMapper,
-            FilterRegistry filterRegistry) {
-        super(SecurityFilterOrder.JWT_VERIFICATION_FILTER);
+    public JwtVerificationFilter(JwtUtility jwtUtility, ObjectMapper objectMapper) {
         this.jwtUtility = jwtUtility;
         this.objectMapper = objectMapper;
-        this.filterRegistry = filterRegistry;
-    }
-
-    /**
-     * 필터 초기화 및 레지스트리에 등록
-     * @Description JwtVerificationFilter를 FilterRegistry에 등록하고, 필터링 조건을 설정합니다.
-     *              공개 API 경로는 JWT 검증 필터 적용에서 제외합니다.
-     */
-    @PostConstruct
-    public void init() {
-        if (filterRegistry != null) {
-            filterRegistry.registerFilter(this);
-            // Example: Add conditions if this filter should skip certain paths
-            // filterRegistry.addCondition(getFilterId(), new PathRequestCondition("/api/public/**"));
-        } else {
-            log.warn("FilterRegistry is null. JWTVerificationFilter may not be registered correctly.");
-        }
     }
 
     /**
@@ -80,11 +48,11 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
      * @Description 요청 헤더에서 JWT 토큰을 추출하여 유효성을 검증하고, 유효한 경우 SecurityContextHolder에 인증 정보를 설정합니다.
      */
     @Override
-    protected void doFilterLogic(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         
         String path = request.getRequestURI();
         log.debug("JWT 검증 필터 실행: {}", path);
-        
+
         try {
             String token = extractToken(request);
 
@@ -130,10 +98,10 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
      * @Description HTTP 요청의 Authorization 헤더에서 'Bearer ' 접두사를 가진 JWT 토큰을 추출합니다.
      */
     private String extractToken(HttpServletRequest request) {
-        String authHeader = request.getHeader(SecurityConstants.TOKEN_HEADER.getValue());
+        String authHeader = request.getHeader("Authorization");
         
-        if (authHeader != null && authHeader.startsWith(SecurityConstants.TOKEN_PREFIX.getValue())) {
-            return authHeader.substring(SecurityConstants.TOKEN_PREFIX.getValue().length());
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
         }
         
         return null;
@@ -157,70 +125,5 @@ public class JwtVerificationFilter extends AbstractSecurityFilter {
         
         objectMapper.writeValue(response.getOutputStream(), 
                                ApiResponse.error(errorType));
-    }
-
-    /**
-     * 필터 ID 반환
-     * @return String 필터의 고유 ID
-     * @Description 이 필터의 고유 ID를 반환합니다. 일반적으로 클래스 이름으로 설정됩니다.
-     */
-    @Override
-    public String getFilterId() {
-        return this.getClass().getSimpleName();
-    }
-    
-    /**
-     * 현재 요청에 대해 필터를 건너뛸지 여부를 결정합니다.
-     * @param request HTTP 요청
-     * @return boolean 필터를 건너뛰려면 true, 그렇지 않으면 false
-     * @Description 이 필터가 현재 요청에 대해 건너뛸지 여부를 결정합니다.
-     */
-    @Override
-    protected boolean shouldSkipFilter(HttpServletRequest request) {
-        String path = request.getRequestURI(); // Keep for logging if needed
-        log.trace("JwtVerificationFilter.shouldSkipFilter called for path: {}", path);
-        // Delegate to FilterRegistry to determine if this filter should be skipped
-        // based on its configured conditions.
-        // filterRegistry.shouldApplyFilter returns true if any condition wants to skip the filter.
-        return filterRegistry.shouldApplyFilter(getFilterId(), request);
-    }
-
-    /**
-     * 이 필터가 실행되어야 하는 필터 클래스를 반환 (이전 필터)
-     * @return Class<? extends Filter> 이전 필터 클래스
-     * @Description 이 필터가 {@link AuthenticationFilter} 이후에 실행되어야 함을 나타냅니다.
-     *              FilterRegistry에서 필터 순서를 결정하는 데 사용될 수 있습니다.
-     */
-    @Override
-    public Class<? extends Filter> getBeforeFilter() {
-        return AuthenticationFilter.class;
-    }
-
-    /**
-     * 이 필터 다음에 실행되어야 하는 필터 클래스를 반환 (다음 필터)
-     * @return Class<? extends Filter> 다음 필터 클래스
-     * @Description 이 필터가 {@link AuthorizationFilter} 이전에 실행되어야 함을 나타냅니다.
-     *              FilterRegistry에서 필터 순서를 결정하는 데 사용될 수 있습니다.
-     */
-    @Override
-    public Class<? extends Filter> getAfterFilter() {
-        return AuthorizationFilter.class;
-    }
-
-    /**
-     * HttpSecurity에 필터 구성
-     * @param http HttpSecurity 객체
-     * @throws Exception 구성 중 예외 발생 시
-     * @Description 이 필터를 AuthenticationFilter 뒤에 추가하도록 HttpSecurity를 설정합니다.
-     *              FilterRegistry를 통해 필터가 관리되므로, 이 메서드는 일반적으로 직접 호출되지 않거나,
-     *              Spring Security 설정 시 FilterRegistry의 configureFilters를 통해 간접적으로 영향을 줄 수 있습니다.
-     */
-    @Override
-    public void configure(HttpSecurity http) throws Exception {
-        // This filter is for JWT verification, actual path protection rules
-        // are typically defined in a central SecurityFilterChain configuration.
-        // If this filter had specific responsibilities for HttpSecurity, they would go here.
-        // For now, we assume it's part of a larger configuration.
-        log.debug("JwtVerificationFilter.configure(HttpSecurity) called. No specific configurations applied by this filter directly.");
     }
 }

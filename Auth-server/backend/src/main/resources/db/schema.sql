@@ -1,4 +1,4 @@
-USE oss_emotion;
+-- USE oss_emotion;
 
 -- 1) FK 검사 잠시 해제
 SET FOREIGN_KEY_CHECKS = 0;

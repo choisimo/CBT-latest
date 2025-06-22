@@ -14,7 +14,9 @@ import java.util.TimeZone;
 public class AuthApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AuthApplication.class, args);
+		        SpringApplication application = new SpringApplication(AuthApplication.class);
+		application.setWebApplicationType(org.springframework.boot.WebApplicationType.SERVLET);
+		application.run(args);
 	}
 
 

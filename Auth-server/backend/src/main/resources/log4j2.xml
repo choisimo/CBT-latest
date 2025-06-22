@@ -1,8 +1,24 @@
-<Appenders>
-    <File name="File" fileName="app.log" immediateFlush="false" append="true">
-        <PatternLayout>
-            <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Pattern>
-            <Charset>UTF-8</Charset> <!-- encoding 을 UTF-8로 설정 -->
-        </PatternLayout>
-    </File>
-</Appenders>
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+    <Appenders>
+        <!-- Console Appender for seeing logs in the terminal -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+        </Console>
+
+        <!-- File Appender as originally intended -->
+        <File name="File" fileName="logs/app.log" immediateFlush="false" append="true">
+            <PatternLayout>
+                <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Pattern>
+                <Charset>UTF-8</Charset>
+            </PatternLayout>
+        </File>
+    </Appenders>
+    <Loggers>
+        <!-- Root logger -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Root>
+    </Loggers>
+</Configuration>

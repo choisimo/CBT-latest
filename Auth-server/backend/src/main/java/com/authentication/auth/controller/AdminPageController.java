@@ -1,72 +1,20 @@
 package com.authentication.auth.controller;
 
-import com.authentication.auth.filter.FilterRegistry;
-import com.authentication.auth.filter.PluggableFilter;
-import com.authentication.auth.filter.FilterCondition;
-import com.authentication.auth.filter.PathPatternFilterCondition; // Assuming this is the primary type
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')") // Protect the entire controller
 public class AdminPageController {
-
-    private final FilterRegistry filterRegistry;
-
-    // DTOs similar to AdminFilterController for consistency with template
-    // These can be moved to a common DTO package if used elsewhere
-    public record FilterListResponse(List<FilterInfo> filters) {}
-    public record FilterInfo(String filterId, String filterClassName, List<ConditionInfo> conditions) {}
-    public record ConditionInfo(String id, String description, Set<String> patterns, Set<String> methods) {}
-
-    private ConditionInfo mapConditionToInfo(FilterCondition condition) {
-        if (condition instanceof PathPatternFilterCondition pathCondition) {
-            return new ConditionInfo(
-                    pathCondition.getId(),
-                    pathCondition.getDescription(),
-                    pathCondition.getPatterns(),
-                    pathCondition.getMethods().stream().map(HttpMethod::name).collect(Collectors.toSet())
-            );
-        } else {
-            // For generic or other types of conditions, provide basic info
-            return new ConditionInfo(
-                    condition.getId(),
-                    condition.getDescription(),
-                    Set.of(), // Or some other representation if applicable
-                    Set.of()
-            );
-        }
-    }
-
-    @GetMapping("/filter-ui")
-    @Hidden // Hide from Swagger UI as it's a UI page
-    public ResponseEntity<?> getFilterManagementPage() {
-        Map<String, PluggableFilter> filters = filterRegistry.getFilters();
-        List<FilterInfo> filterInfos = filters.values().stream()
-                .map(filter -> {
-                    List<ConditionInfo> conditions = filterRegistry.getConditionsForFilter(filter.getFilterId()).stream()
-                            .map(this::mapConditionToInfo)
-                            .collect(Collectors.toList());
-                    return new FilterInfo(filter.getFilterId(), filter.getClass().getSimpleName(), conditions);
-                })
-                .collect(Collectors.toList());
-        FilterListResponse responseData = new FilterListResponse(filterInfos);
-        return ResponseEntity.ok(responseData);
-    }
 
     @GetMapping("/dashboard") // main dashboard path
     @Hidden // Hide from Swagger UI as it's a UI page
@@ -87,6 +35,4 @@ public class AdminPageController {
             "navigateTo", "/admin/dashboard"
         ));
     }
-
-
 }
