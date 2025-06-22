@@ -14,8 +14,8 @@ public record LoginResponse(
      */
     public record UserInfo(
         @Schema(description = "사용자 ID", example = "1")
-        Long userId,
-        @Schema(description = "사용자명", example = "testuser")
+        Long userId, 
+        @Schema(description = "닉네임", example = "testuser")
         String nickname,
         @Schema(description = "이메일", example = "user@example.com")
         String email

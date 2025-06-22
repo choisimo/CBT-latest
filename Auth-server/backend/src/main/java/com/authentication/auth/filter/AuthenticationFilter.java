@@ -269,7 +269,8 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter i
      */
     @Override
     public void configure(HttpSecurity http) throws Exception {
-        // UsernamePasswordAuthenticationFilter는 Spring Security에 의해 자동으로 구성됨
+        // Register this custom filter at the position of UsernamePasswordAuthenticationFilter
+        http.addFilterAt(this, UsernamePasswordAuthenticationFilter.class);
     }
 
     /**

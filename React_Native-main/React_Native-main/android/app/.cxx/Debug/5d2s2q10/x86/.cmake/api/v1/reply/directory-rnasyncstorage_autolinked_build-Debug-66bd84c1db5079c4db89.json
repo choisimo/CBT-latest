@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "rnasyncstorage_autolinked_build",
+		"source" : "/home/nodove/workspace/CBT-Diary/React_Native-main/React_Native-main/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni"
+	}
+}
