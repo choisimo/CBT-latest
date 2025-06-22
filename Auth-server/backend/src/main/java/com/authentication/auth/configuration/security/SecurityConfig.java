@@ -95,7 +95,8 @@ public class SecurityConfig {
             "/user/resetPassword", "/user/verifyResetPassword", "/user/verifyEmail", 
             "/user/resendVerificationEmail",
             // Other public paths from publicAPI.java
-            "/public", "/errorPage", "/notExist", "/unauthorized" 
+            "/public", "/errorPage", "/notExist", "/unauthorized" ,
+            ""
             // Ensure these paths are distinct and correctly represent public resources.
             // Some like /unauthorized might be error views rather than pre-auth accessible endpoints.
     };

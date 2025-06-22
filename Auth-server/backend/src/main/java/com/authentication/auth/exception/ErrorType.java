@@ -94,6 +94,7 @@ public enum ErrorType {
     // OAuth2 specific errors
     OAUTH2_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "OAuth2 인증에 실패했습니다."), // OK
     OAUTH2_PROVIDER_MISMATCH(HttpStatus.BAD_REQUEST, "OAuth2 제공자가 일치하지 않습니다."), // OK
+    INVALID_OAUTH_STATE(HttpStatus.BAD_REQUEST, "잘못된 OAuth state 파라미터입니다."), // NEW
     
     // Diary specific errors
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "다이어리를 찾을 수 없습니다."), // OK

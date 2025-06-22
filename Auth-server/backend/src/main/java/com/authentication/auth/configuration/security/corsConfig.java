@@ -25,6 +25,13 @@ public class corsConfig {
 
     @Value("${cors.allowed-origins.dev}")
     private String devAllowedOrigins;
+
+    // New: comma-separated list of origin PATTERNS (supports wildcards) for prod/dev
+    @Value("${cors.allowed-origin-patterns.prod:}")
+    private String prodAllowedOriginPatterns;
+
+    @Value("${cors.allowed-origin-patterns.dev:}")
+    private String devAllowedOriginPatterns;
     
     @Value("${spring.profiles.active:default}") // Get active profile, default to "default" if not set
     private String activeProfile;
@@ -48,11 +55,24 @@ public class corsConfig {
         log.info("Configuring CORS for allowed origins: {}", allowedOriginsConfig);
 
         corsConfiguration.setAllowedOrigins(allowedOriginsConfig);
-        // corsConfiguration.setAllowedOriginPatterns(List.of("*")); // REMOVED as per audit
+        // Dynamically add origin patterns when configured
+        List<String> patternConfig;
+        if ("dev".equalsIgnoreCase(activeProfile)) {
+            patternConfig = devAllowedOriginPatterns == null || devAllowedOriginPatterns.isBlank()
+                    ? List.of()
+                    : Arrays.asList(devAllowedOriginPatterns.split("\\s*,\\s*"));
+        } else {
+            patternConfig = prodAllowedOriginPatterns == null || prodAllowedOriginPatterns.isBlank()
+                    ? List.of()
+                    : Arrays.asList(prodAllowedOriginPatterns.split("\\s*,\\s*"));
+        }
+        if (!patternConfig.isEmpty()) {
+            corsConfiguration.setAllowedOriginPatterns(patternConfig);
+        }
         
-        corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS", "PATCH", "DELETE", "UPDATE"));
-        corsConfiguration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization", "provider", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
-        corsConfiguration.setExposedHeaders(Arrays.asList("Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Authorization"));
+        corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        corsConfiguration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization", "provider", "X-Requested-With", "Accept", "Origin", "X-Custom-Header", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        corsConfiguration.setExposedHeaders(Arrays.asList("Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Authorization", "X-Custom-Response-Header"));
         corsConfiguration.setAllowCredentials(true);
         corsConfiguration.setMaxAge(3600L); // Optional: How long the response from a pre-flight request can be cached.
 
