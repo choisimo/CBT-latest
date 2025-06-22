@@ -48,6 +48,7 @@ dependencies {
 
     // Database
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    runtimeOnly 'com.h2database:h2:2.1.214'
     testImplementation 'com.h2database:h2:2.1.214'
 
     // QueryDSL (OpenFeign 포크 버전)

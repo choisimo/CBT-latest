@@ -98,8 +98,6 @@ public class UserService {
             log.info("Redis에서 이메일 인증 코드 삭제 성공: {}", email);
         } else {
             log.warn("Redis에서 이메일 인증 코드 삭제 실패 또는 해당 코드 없음: {}", email);
-            // 이 경우, 이미 코드가 만료되었거나 다른 이유로 삭제되었을 수 있음.
-            // 추가적인 오류 처리가 필요하다면 여기에 구현.
         }
     }
 
@@ -128,14 +126,13 @@ public class UserService {
     
 
     @Transactional(readOnly = true)
-    public boolean checkNicknameIsDuplicate(String nickname) {
-        return repository.existsByNickname(nickname);
+    public boolean checkUserIdIsDuplicate(Integer userId) {
+        return repository.existsById(userId.longValue());
     }
 
     @Transactional(readOnly = true)
-    public boolean checkUserIdIsDuplicate(Integer userId) {
-        // Integer userId로 받지만 실제로는 loginId(String)으로 체크해야 함
-        return repository.existsByUserId(userId);
+    public boolean checkNicknameIsDuplicate(String nickname) {
+        return repository.existsByNickname(nickname);
     }
 
     @Transactional(readOnly = true) // checkLoginIdIsDuplicate는 읽기 전용

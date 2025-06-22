@@ -13,7 +13,7 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://nodove:dover2718281!@mongodb-container:27017/oss_emotion?authSource=admin
       - SPRING_DATA_REDIS_HOST=redis-container
       - SPRING_DATA_REDIS_PORT=6379
-      - SPRING_DATA_REDIS_PASSWORD=Nnh5BgjBdgoZ7LsQVpfTJnVv5DFDJqLEqa83oWDv2vWQhHm94tKwhrFPCAqhzT2Fv7MHP25NtRiGKcJo7JC2ZZcD7UPsLXwgLv5PJ
+      - SPRING_DATA_REDIS_PASSWORD=
     depends_on:
       - mariadb-container
       - mongodb-container
@@ -57,7 +57,7 @@ services:
     container_name: redis-db
     ports:
       - "6379:6379"
-    command: redis-server --requirepass Nnh5BgjBdgoZ7LsQVpfTJnVv5DFDJqLEqa83oWDv2vWQhHm94tKwhrFPCAqhzT2Fv7MHP25NtRiGKcJo7JC2ZZcD7UPsLXwgLv5PJ
+    command: ["redis-server", "--save", "60", "1"]
     volumes:
       - redis_data:/data
     networks:
@@ -96,7 +96,9 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
       - cbt-network
     restart: unless-stopped

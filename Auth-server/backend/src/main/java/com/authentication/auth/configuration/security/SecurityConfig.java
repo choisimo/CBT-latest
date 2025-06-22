@@ -136,21 +136,14 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     *  @apiNote BCryptPasswordEncoder Bean
-     *  @return BCryptPasswordEncoder
-     */
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+
 
     /**
      *  @apiNote ObjectMapper Bean
      *  @return ObjectMapper
      */
     @Bean
-    public ObjectMapper objectMapper() {
+    public static ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
 

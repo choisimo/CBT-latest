@@ -8,7 +8,7 @@ import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 
-@Configuration
+// Removed @Configuration annotation to prevent duplicate bean registration
 public class WebClientConfig {
 
     @Bean

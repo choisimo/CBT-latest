@@ -7,17 +7,25 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 /**
  * 보안 필터 설정 클래스
  * 필터의 등록 및 순서 설정을 담당
  */
 @Configuration
-@RequiredArgsConstructor
 public class SecurityFilterConfig {
 
     private final AuthenticationFilter authenticationFilter;
     private final AuthorizationFilter authorizationFilter;
+
+    public SecurityFilterConfig(@Lazy AuthenticationFilter authenticationFilter,
+                                AuthorizationFilter authorizationFilter) {
+        this.authenticationFilter = authenticationFilter;
+        this.authorizationFilter = authorizationFilter;
+    }
+
+
     // private final SnsRequestFilter snsRequestFilter;
 
     /**
@@ -27,9 +35,8 @@ public class SecurityFilterConfig {
     public FilterRegistrationBean<AuthenticationFilter> authenticationFilterRegistration() {
         FilterRegistrationBean<AuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(authenticationFilter);
-        registrationBean.addUrlPatterns("/*");
-        registrationBean.setOrder(authenticationFilter.getOrder());
-        registrationBean.setName("authenticationFilter");
+        // Disable direct servlet registration to avoid duplicate with Spring Security filter chain
+        registrationBean.setEnabled(false);
         return registrationBean;
     }
 
@@ -40,9 +47,7 @@ public class SecurityFilterConfig {
     public FilterRegistrationBean<AuthorizationFilter> authorizationFilterRegistration() {
         FilterRegistrationBean<AuthorizationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(authorizationFilter);
-        registrationBean.addUrlPatterns("/*");
-        registrationBean.setOrder(authorizationFilter.getOrder());
-        registrationBean.setName("authorizationFilter");
+        registrationBean.setEnabled(false);
         return registrationBean;
     }
 
@@ -54,9 +59,7 @@ public class SecurityFilterConfig {
     public FilterRegistrationBean<SnsRequestFilter> snsRequestFilterRegistration() {
         FilterRegistrationBean<SnsRequestFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(snsRequestFilter);
-        registrationBean.addUrlPatterns("/*");
-        registrationBean.setOrder(snsRequestFilter.getOrder());
-        registrationBean.setName("snsRequestFilter");
+        registrationBean.setEnabled(false);
         return registrationBean;
     }
 */

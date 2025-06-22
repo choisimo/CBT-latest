@@ -6,13 +6,11 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 import java.util.TimeZone;
 
 @EnableConfigurationProperties({JwtProperties.class, OauthProperties.class})
 @SpringBootApplication
-@EnableMongoRepositories
 public class AuthApplication {
 
 	public static void main(String[] args) {
