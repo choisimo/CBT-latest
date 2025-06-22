@@ -13,6 +13,7 @@ When the user sends a diary entry, you must:
 4. 코칭(coaching): 내일을 위한 제안 또는 격려의 말을 최소 100글자 이상 토큰을 전부 소진.  
 5. 모든 출력은 valid JSON 객체 하나로만 응답.
 6. 개행 문자를 반드시 이스케이프 처리하여 출력하세요. \과 같은 특수문자가 나오지 않도록 출력하세요.
+7. 깔끔하게 데이터 전처리를 하여 json을 파싱하는데 문제가 안 생기도록 하세요.
 Example JSON input:
 ```json
 {

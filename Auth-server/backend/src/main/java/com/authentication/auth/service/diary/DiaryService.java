@@ -116,16 +116,22 @@ public class DiaryService {
     private AIResponse parseAIResponse(String aiResponseStr, DiaryRequestDto diaryRequest) throws JsonProcessingException {
         log.debug("원본 AI 응답: {}", aiResponseStr);
         
-        // JSON 문자열 전처리 - 이스케이프 처리
-        String processedResponse = escapeJsonString(aiResponseStr);
-        log.debug("전처리된 AI 응답: {}", processedResponse);
-        
         // 임시 ObjectMapper 생성 (제어 문자 허용 설정)
         ObjectMapper tempMapper = new ObjectMapper();
         tempMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
         tempMapper.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, true);
 
-        JsonNode jsonNode = tempMapper.readTree(processedResponse);
+        JsonNode jsonNode;
+        try {
+            // 먼저 원본 JSON 파싱 시도
+            jsonNode = tempMapper.readTree(aiResponseStr);
+        } catch (JsonProcessingException e) {
+            log.warn("원본 JSON 파싱 실패, 이스케이프 처리 후 재시도: {}", e.getMessage());
+            // 파싱 실패시 이스케이프 처리 후 재시도
+            String processedResponse = escapeJsonString(aiResponseStr);
+            log.debug("전처리된 AI 응답: {}", processedResponse);
+            jsonNode = tempMapper.readTree(processedResponse);
+        }
         JsonNode aiResponseNode = jsonNode.get("aiResponse");
 
         if (aiResponseNode == null) {
@@ -161,22 +167,66 @@ public class DiaryService {
     }
 
     /**
-     * JSON 문자열 이스케이프 처리
+     * JSON 문자열 이스케이프 처리 (JSON 값 내의 특수 문자만 처리)
      */
     private String escapeJsonString(String jsonStr) {
         if (jsonStr == null) {
             return null;
         }
         
-        // JSON 문자열 내에서 특수 문자들을 적절히 이스케이프 처리
-        return jsonStr
-            .replace("\\", "\\\\")  // 백슬래시 먼저 처리
-            .replace("\n", "\\n")   // 개행 문자
-            .replace("\r", "\\r")   // 캐리지 리턴
-            .replace("\t", "\\t")   // 탭 문자
-            .replace("\"", "\\\"")  // 큰따옴표 (이미 이스케이프된 것은 제외)
-            .replace("\b", "\\b")   // 백스페이스
-            .replace("\f", "\\f");  // 폼 피드
+        StringBuilder sb = new StringBuilder();
+        boolean inString = false;
+        boolean escapeNext = false;
+        
+        for (int i = 0; i < jsonStr.length(); i++) {
+            char c = jsonStr.charAt(i);
+            
+            if (escapeNext) {
+                // 이미 이스케이프된 문자는 그대로 유지
+                sb.append('\\').append(c);
+                escapeNext = false;
+                continue;
+            }
+            
+            if (c == '\\') {
+                escapeNext = true;
+                continue;
+            }
+            
+            if (c == '"' && !escapeNext) {
+                inString = !inString;
+                sb.append(c);
+                continue;
+            }
+            
+            if (inString) {
+                // 문자열 값 내부에서만 특수 문자 이스케이프 처리
+                switch (c) {
+                    case '\n':
+                        sb.append("\\n");
+                        break;
+                    case '\r':
+                        sb.append("\\r");
+                        break;
+                    case '\t':
+                        sb.append("\\t");
+                        break;
+                    case '\b':
+                        sb.append("\\b");
+                        break;
+                    case '\f':
+                        sb.append("\\f");
+                        break;
+                    default:
+                        sb.append(c);
+                        break;
+                }
+            } else {
+                sb.append(c);
+            }
+        }
+        
+        return sb.toString();
     }
 
     /**
