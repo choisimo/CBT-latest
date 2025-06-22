@@ -46,6 +46,20 @@ public class EmailController implements EmailApi {
         return ResponseEntity.ok(ApiResponse.success(response, "이메일 인증 코드 발송 성공"));
     }
 
+    /**
+     * 모바일 회원가입용 이메일 인증 코드 전송 엔드포인트 (기존 /public/emailSend 와 동일 로직)
+     */
+    @PostMapping("/public/emailCode")
+    public ResponseEntity<ApiResponse<EmailSendResponse>> sendEmailCode(@RequestBody @Valid SmtpEmailRequest request) {
+        if (emailService.checkIsExistEmail(request.email())) {
+            throw new CustomException(ErrorType.EMAIL_ALREADY_EXISTS, "해당 이메일은 이미 사용 중입니다.");
+        }
+        String code = emailService.joinEmail(request.email());
+        this.redisService.saveEmailCode(request.email(), code);
+        EmailSendResponse response = new EmailSendResponse("인증 코드가 이메일로 발송되었습니다.");
+        return ResponseEntity.ok(ApiResponse.success(response, "이메일 인증 코드 발송 성공"));
+    }
+
     @Override
     @PostMapping("/private/customEmailSend")
     public ResponseEntity<ApiResponse<EmailSendResponse>> sendCustomEmail(@RequestBody @Valid CustomEmailRequest request) {

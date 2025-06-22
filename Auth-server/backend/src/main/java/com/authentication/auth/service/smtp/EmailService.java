@@ -63,12 +63,10 @@ public class EmailService {
             try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
                 content = FileCopyUtils.copyToString(reader);
             }
-            // Assuming the template now uses {{verificationLink}}
+            // 템플릿에 서비스명 및 인증 코드/링크 삽입
+            content = content.replace("{{serviceName}}", "CBT-Diary");
+            content = content.replace("{{verificationCode}}", verificationToken);
             content = content.replace("{{verificationLink}}", verificationLink);
-            // If the template still uses {{verificationCode}} for displaying the code as text, 
-            // you might need to pass both or adjust the template significantly.
-            // For now, focusing on the clickable link.
-            // content = content.replace("{{verificationCode}}", verificationToken); // If template needs both
         } catch (IOException e) {
             log.error("Failed to load email template for join welcome: {}", e.getMessage());
             throw new CustomException(ErrorType.EMAIL_TEMPLATE_LOAD_FAILURE, "회원가입 이메일 템플릿 로드에 실패했습니다.");

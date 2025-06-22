@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  * @Detail : sort 기능을 위해 user_id, created_at DESC로 인덱스 추가
  */
 @Entity
-@Table(name = "Diary", indexes = {
+@Table(name = "diary", indexes = {
     @Index(name = "idx_diary_user_created_at", columnList = "user_id, created_at DESC")
 })
 @Data

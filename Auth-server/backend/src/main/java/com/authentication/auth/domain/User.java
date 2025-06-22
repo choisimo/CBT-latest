@@ -12,7 +12,7 @@ import java.util.List;
  *  idx_email : email 컬럼에 대한 인덱스 -> email 검색 시 성능 향상 (unique constraint)
  */
 @Entity
-@Table(name = "Users", indexes = @Index(name = "idx_email", columnList = "email"))
+@Table(name = "users", indexes = @Index(name = "idx_email", columnList = "email"))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
