@@ -4,7 +4,6 @@ import com.authentication.auth.domain.AIResponse;
 import com.authentication.auth.dto.*;
 import com.authentication.auth.repository.AIResponseRepository;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -116,8 +115,17 @@ public class DiaryService {
      */
     private AIResponse parseAIResponse(String aiResponseStr, DiaryRequestDto diaryRequest) throws JsonProcessingException {
         log.debug("원본 AI 응답: {}", aiResponseStr);
+        
+        // JSON 문자열 전처리 - 이스케이프 처리
+        String processedResponse = escapeJsonString(aiResponseStr);
+        log.debug("전처리된 AI 응답: {}", processedResponse);
+        
+        // 임시 ObjectMapper 생성 (제어 문자 허용 설정)
+        ObjectMapper tempMapper = new ObjectMapper();
+        tempMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+        tempMapper.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, true);
 
-        JsonNode jsonNode = objectMapper.readTree(aiResponseStr);
+        JsonNode jsonNode = tempMapper.readTree(processedResponse);
         JsonNode aiResponseNode = jsonNode.get("aiResponse");
 
         if (aiResponseNode == null) {
@@ -152,7 +160,24 @@ public class DiaryService {
             .build();
     }
 
-    
+    /**
+     * JSON 문자열 이스케이프 처리
+     */
+    private String escapeJsonString(String jsonStr) {
+        if (jsonStr == null) {
+            return null;
+        }
+        
+        // JSON 문자열 내에서 특수 문자들을 적절히 이스케이프 처리
+        return jsonStr
+            .replace("\\", "\\\\")  // 백슬래시 먼저 처리
+            .replace("\n", "\\n")   // 개행 문자
+            .replace("\r", "\\r")   // 캐리지 리턴
+            .replace("\t", "\\t")   // 탭 문자
+            .replace("\"", "\\\"")  // 큰따옴표 (이미 이스케이프된 것은 제외)
+            .replace("\b", "\\b")   // 백스페이스
+            .replace("\f", "\\f");  // 폼 피드
+    }
 
     /**
      * 모든 AI 응답 조회 (특정 사용자)
