@@ -133,15 +133,15 @@ async def analyze_diary(request: DiaryAnalysisRequest):
         # OpenAI API 호출
         response = openai_service.chat_with_history(
             messages=messages,
-            model="gpt-3.5-turbo",
-            temperature=0.7,
+            model="gpt-4",
+            temperature=0.8,
             max_tokens=4000
         )
         
         return DiaryAnalysisResponse(
             response=response["content"],
             usage=response.get("usage"),
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             timestamp=datetime.now().isoformat()
         )
         
