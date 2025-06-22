@@ -4,8 +4,10 @@ echo "🚀 CBT Diary React Native 실행 스크립트 v2.0"
 echo "============================================="
 echo ""
 
-# 현재 디렉토리로 이동
-cd /home/nodove/workspace/CBT-Diary/React_Native-main/React_Native-main
+# 현재 디렉토리로 이동 (스크립트가 있는 곳의 상위 디렉토리)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
 echo "📁 작업 디렉토리: $(pwd)"
 
 # 0. 사전 진단
@@ -14,13 +16,20 @@ echo "Node.js: $(node --version 2>/dev/null || echo '❌ 미설치')"
 echo "npm: $(npm --version 2>/dev/null || echo '❌ 미설치')"
 echo "Java: $(java -version 2>&1 | head -1 || echo '❌ 미설치')"
 
-# Android SDK 경로 자동 검색
+# Android SDK 경로 자동 검색 (더 많은 경로 추가)
 ANDROID_PATHS=(
     "$HOME/Android/Sdk"
     "$HOME/.local/share/android-sdk"
     "/opt/android-sdk"
     "/usr/local/android-sdk"
     "$HOME/snap/android-studio/current/android-studio/bin"
+    "/snap/android-studio/current/android-studio/jbr"
+    "$HOME/android-studio/bin"
+    "/opt/android-studio/bin"
+    "$HOME/.android/sdk"
+    "/usr/lib/android-sdk"
+    "$ANDROID_HOME"
+    "$ANDROID_SDK_ROOT"
 )
 
 FOUND_SDK=""
