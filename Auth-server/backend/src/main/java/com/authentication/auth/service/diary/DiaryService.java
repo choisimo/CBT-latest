@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -101,7 +104,14 @@ public class DiaryService {
      * AI 응답 파싱
      */
     private AIResponse parseAIResponse(String aiResponseStr, DiaryRequestDto diaryRequest) throws JsonProcessingException {
-        JsonNode jsonNode = objectMapper.readTree(aiResponseStr);
+        
+        log.debug("원본 AI 응답: {}", aiResponseStr);
+         // 줄바꿈 문자와 기타 제어 문자들을 이스케이프 처리
+        String sanitizedResponse = sanitizeJsonString(aiResponseStr);
+        log.debug("정제된 AI 응답: {}", sanitizedResponse);
+    
+
+        JsonNode jsonNode = objectMapper.readTree(sanitizedResponse);
         JsonNode aiResponseNode = jsonNode.get("aiResponse");
 
         if (aiResponseNode == null) {
@@ -121,6 +131,13 @@ public class DiaryService {
             }
         }
 
+        // 줄바꿈 문자와 기타 제어 문자들을 이스케이프 처리
+        String sanitizedResponse = sanitizeJsonString(aiResponseStr);
+        log.debug("정제된 AI 응답: {}", sanitizedResponse);
+    
+        JsonNode jsonNode = objectMapper.readTree(sanitizedResponse);
+        JsonNode aiResponseNode = jsonNode.get("aiResponse");
+
         // AIResponse 엔티티 생성
         LocalDateTime now = LocalDateTime.now();
         
@@ -134,6 +151,21 @@ public class DiaryService {
             .createdAt(now)
             .updatedAt(now)
             .build();
+    }
+
+    private String sanitizeJsonString(String jsonStr) {
+        if (jsonStr == null) {
+            return null;
+        }
+        
+        return jsonStr
+            .replace("\n", "\\n")      // 줄바꿈
+            .replace("\r", "\\r")      // 캐리지 리턴
+            .replace("\t", "\\t")      // 탭
+            .replace("\b", "\\b")      // 백스페이스
+            .replace("\f", "\\f")      // 폼피드
+            .replace("\"", "\\\"")     // 따옴표 (이미 이스케이프된 경우 중복 처리 방지)
+            .replaceAll("\\\\\"", "\\\""); // 중복 이스케이프 제거
     }
 
     /**
