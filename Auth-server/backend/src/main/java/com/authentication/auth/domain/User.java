@@ -97,4 +97,9 @@ public class User {
     public String getUserName() {
         return this.loginId;
     }
+
+    public void updateFromOauthProfile(String email, String nickname) {
+        this.email = email;
+        this.nickname = nickname;
+    }
 }

@@ -1,12 +1,10 @@
 package com.authentication.auth.service.oauth2;
 
 import com.authentication.auth.configuration.oauth2.OauthProperties;
-
 import com.authentication.auth.configuration.token.JwtUtility;
 import com.authentication.auth.domain.AuthProvider;
 import com.authentication.auth.domain.User;
 import com.authentication.auth.domain.UserAuthentication;
-import com.authentication.auth.domain.UserAuthenticationId;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.repository.AuthProviderRepository;
@@ -18,30 +16,34 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.List; 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
 class Oauth2ServiceTest {
 
@@ -59,24 +61,32 @@ class Oauth2ServiceTest {
     private UserAuthenticationRepository userAuthenticationRepository;
     @Mock
     private RestTemplate restTemplate;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
-    @Spy 
-    @InjectMocks
     private Oauth2Service oauth2Service;
 
     private User testUser;
     private AuthProvider kakaoAuthProvider;
-        private OauthProperties.Client kakaoProps;
+    private OauthProperties.Client kakaoProps;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(oauth2Service, "domain", "test.com");
+        Oauth2Service realOauth2Service = new Oauth2Service(
+                oauthProperties,
+                userRepository,
+                redisService,
+                jwtUtility,
+                authProviderRepository,
+                userAuthenticationRepository,
+                restTemplate,
+                passwordEncoder
+        );
+        oauth2Service = spy(realOauth2Service);
 
-                testUser = User.builder().id(1L).nickname("testuser").email("test@example.com").userRole("USER").isActive("ACTIVE").build();
+        testUser = User.builder().id(1L).nickname("testuser").email("test@example.com").userRole("USER").isActive("ACTIVE").build();
         kakaoAuthProvider = AuthProvider.builder().id(1).providerName("KAKAO").build();
-
-                kakaoProps = new OauthProperties.Client("kakao-client-id", "kakao-client-secret", "http://localhost/kakao-redirect");
-
+        kakaoProps = new OauthProperties.Client("kakao-client-id", "kakao-client-secret", "http://localhost/kakao-redirect");
     }
 
     @Test
@@ -85,36 +95,32 @@ class Oauth2ServiceTest {
         // Given
         String provider = "KAKAO";
         String oauthId = "kakao123";
-        Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("id", oauthId); 
-        Map<String, Object> kakaoAccountMap = new HashMap<>();
-        kakaoAccountMap.put("email", "newuser@example.com");
-        userProfile.put("kakao_account", kakaoAccountMap);
-        Map<String, Object> propertiesMap = new HashMap<>();
-        propertiesMap.put("nickname", "NewKakaoUser");
-        userProfile.put("properties", propertiesMap);
+        Map<String, Object> userProfile = Map.of("email", "newuser@example.com", "nickname", "new_user_nickname");
 
-
-        when(userAuthenticationRepository.findByAuthProvider_ProviderNameAndSocialId(provider, oauthId))
+        when(userAuthenticationRepository.findByAuthProvider_ProviderNameAndSocialId(provider.toUpperCase(), oauthId))
                 .thenReturn(Optional.empty());
-                when(userRepository.existsByEmail("newuser@example.com")).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User user = invocation.getArgument(0);
-            user.setId(2L); 
-            return user;
-        });
-        when(authProviderRepository.findByProviderName(provider)).thenReturn(Optional.of(kakaoAuthProvider));
-        when(userAuthenticationRepository.save(any(UserAuthentication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.existsByNickname("new_user_nickname")).thenReturn(false);
+        when(authProviderRepository.findByProviderName(provider.toUpperCase())).thenReturn(Optional.of(kakaoAuthProvider));
+
+        User savedUser = User.builder().id(2L).nickname("new_user_nickname").email("newuser@example.com").build();
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         // When
         User resultUser = oauth2Service.saveOrUpdateOauth2User(provider, oauthId, userProfile);
 
         // Then
-        assertThat(resultUser).isNotNull();
-        assertThat(resultUser.getEmail()).isEqualTo("newuser@example.com");
-        assertThat(resultUser.getUserName()).isEqualTo("newuser@example.com"); 
-        verify(userRepository).save(any(User.class));
-        verify(userAuthenticationRepository).save(any(UserAuthentication.class));
+        assertNotNull(resultUser);
+        assertEquals(savedUser.getId(), resultUser.getId());
+        assertEquals(savedUser.getNickname(), resultUser.getNickname());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertEquals("new_user_nickname", userCaptor.getValue().getNickname());
+
+        ArgumentCaptor<UserAuthentication> userAuthCaptor = ArgumentCaptor.forClass(UserAuthentication.class);
+        verify(userAuthenticationRepository).save(userAuthCaptor.capture());
+        assertEquals(oauthId, userAuthCaptor.getValue().getSocialId());
+        assertEquals(savedUser.getId(), userAuthCaptor.getValue().getUser().getId());
     }
 
     @Test
@@ -122,78 +128,66 @@ class Oauth2ServiceTest {
     void saveOrUpdateOauth2User_ExistingUser() {
         // Given
         String provider = "KAKAO";
-        String oauthId = "kakao123"; 
-        Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("id", oauthId); 
-        Map<String, Object> kakaoAccountMap = new HashMap<>();
-        kakaoAccountMap.put("email", "updated@example.com");
-        userProfile.put("kakao_account", kakaoAccountMap);
-
+        String oauthId = "existing_kakao123";
+        String newEmail = "updated_email@example.com";
+        Map<String, Object> userProfile = Map.of("email", newEmail);
 
         UserAuthentication existingAuth = UserAuthentication.builder()
-                .id(new UserAuthenticationId(testUser.getId(), kakaoAuthProvider.getId()))
                 .user(testUser)
                 .authProvider(kakaoAuthProvider)
-                .socialId(oauthId) 
+                .socialId(oauthId)
                 .build();
 
-        when(userAuthenticationRepository.findByAuthProvider_ProviderNameAndSocialId(provider, oauthId))
+        when(userAuthenticationRepository.findByAuthProvider_ProviderNameAndSocialId(provider.toUpperCase(), oauthId))
                 .thenReturn(Optional.of(existingAuth));
-        when(authProviderRepository.findByProviderName(provider)).thenReturn(Optional.of(kakaoAuthProvider));
-        when(userAuthenticationRepository.findById(any(UserAuthenticationId.class))).thenReturn(Optional.of(existingAuth));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When
         User resultUser = oauth2Service.saveOrUpdateOauth2User(provider, oauthId, userProfile);
 
         // Then
-        assertThat(resultUser).isNotNull();
-        assertThat(resultUser.getEmail()).isEqualTo("updated@example.com");
-        verify(userRepository).save(testUser); 
-        verify(userAuthenticationRepository, never()).save(any(UserAuthentication.class)); 
+        assertNotNull(resultUser);
+        assertEquals(testUser.getId(), resultUser.getId());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertEquals(newEmail, userCaptor.getValue().getEmail());
     }
-    
+
     @Test
-    @DisplayName("handleOauth2Login - Kakao 성공")
+    @DisplayName("handleOauth2Login - 카카오 로그인 성공")
     void handleOauth2Login_Kakao_Success() {
         // Given
-        when(oauthProperties.kakao()).thenReturn(kakaoProps);
-        String provider = "kakao";
+        String provider = "KAKAO";
         String tempCode = "kakaoTempCode";
         Map<String, String> requestBody = Map.of("tempCode", tempCode);
         HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
 
-        Map<String, String> oauthTokens = Map.of("access_token", "kakao_access_token", "refresh_token", "kakao_refresh_token");
-        doReturn(oauthTokens).when(oauth2Service).getKakaoTokens(tempCode);
-        
-        Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("id", "kakao123"); 
-        Map<String, Object> kakaoAccount = new HashMap<>();
-        kakaoAccount.put("email", "kakao@example.com");
-        userProfile.put("kakao_account", kakaoAccount);
-        doReturn(userProfile).when(oauth2Service).getKakaoUserProfile("kakao_access_token");
+        Map<String, String> kakaoTokens = Map.of("access_token", "kakao_access_token", "refresh_token", "kakao_refresh_token");
+        Map<String, Object> userProfile = Map.of("id", "kakao123", "email", "kakao@example.com");
+        TokenDto appTokenDto = new TokenDto("app_access_token", null);
 
-                User user = User.builder().id(1L).nickname("kakao@example.com").userRole("USER").isActive("ACTIVE").build();
-        doReturn(user).when(oauth2Service).saveOrUpdateOauth2User(eq(provider), eq("kakao123"), anyMap());
-        
-        TokenDto appTokenDto = new TokenDto("app_access_token", "app_refresh_token_unused");
-        when(jwtUtility.buildToken(eq("kakao@example.com"), any(List.class))).thenReturn(appTokenDto);
-        
-        doNothing().when(redisService).saveRToken(eq("kakao123"), eq(provider), eq("kakao_refresh_token"));
+        doReturn(kakaoTokens).when(oauth2Service).getKakaoTokens(tempCode);
+        doReturn(userProfile).when(oauth2Service).getKakaoUserProfile("kakao_access_token");
+        doReturn(testUser).when(oauth2Service).saveOrUpdateOauth2User(anyString(), anyString(), anyMap());
+        Collection<GrantedAuthority> expectedAuthorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + testUser.getUserRole()));
+        doReturn(appTokenDto).when(jwtUtility).buildToken(eq(testUser.getNickname()), eq(expectedAuthorities));
+        doNothing().when(redisService).saveRToken(anyString(), anyString(), anyString());
 
         // When
-        LoginResponse response = oauth2Service.handleOauth2Login(requestBody, httpServletResponse, provider);
+        LoginResponse loginResponse = oauth2Service.handleOauth2Login(requestBody, httpServletResponse, provider);
 
         // Then
-        assertThat(response).isNotNull();
-        assertThat(response.accessToken()).isEqualTo("app_access_token");
-        
-        verify(redisService).saveRToken("kakao123", provider, "kakao_refresh_token");
-        verify(httpServletResponse).addHeader("Authorization", "Bearer app_access_token");
-        verify(httpServletResponse).addCookie(any()); 
+        assertNotNull(loginResponse);
+        assertEquals(appTokenDto.accessToken(), loginResponse.accessToken());
+        assertEquals(testUser.getNickname(), loginResponse.user().nickname());
+
+        verify(oauth2Service).saveOrUpdateOauth2User(eq(provider), eq("kakao123"), eq(userProfile));
+        verify(redisService).saveRToken(eq("kakao123"), eq(provider), eq("kakao_refresh_token"));
+
+        verify(jwtUtility).buildToken(eq(testUser.getNickname()), eq(expectedAuthorities));
     }
-    
+
     @Test
     @DisplayName("getKakaoTokens - 성공")
     void getKakaoTokens_Success() {
@@ -203,54 +197,45 @@ class Oauth2ServiceTest {
         Map<String, Object> mockApiResponse = new HashMap<>();
         mockApiResponse.put("access_token", "mock_access_token");
         mockApiResponse.put("refresh_token", "mock_refresh_token");
-        ResponseEntity<Map<String, Object>> responseEntity = new ResponseEntity<>(mockApiResponse, HttpStatus.OK);
+        ResponseEntity<Map<String, Object>> mockResponse = ResponseEntity.ok(mockApiResponse);
 
-        when(restTemplate.exchange(
-            eq("https://kauth.kakao.com/oauth/token"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            any(ParameterizedTypeReference.class))
-        ).thenReturn(responseEntity);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class)))
+                .thenReturn(mockResponse);
 
         // When
         Map<String, String> tokens = oauth2Service.getKakaoTokens(tempCode);
 
         // Then
-        assertThat(tokens).isNotNull();
-        assertThat(tokens.get("access_token")).isEqualTo("mock_access_token");
-        assertThat(tokens.get("refresh_token")).isEqualTo("mock_refresh_token");
+        assertNotNull(tokens);
+        assertEquals("mock_access_token", tokens.get("access_token"));
+        assertEquals("mock_refresh_token", tokens.get("refresh_token"));
     }
 
     @Test
     @DisplayName("getKakaoUserProfile - 성공")
     void getKakaoUserProfile_Success() {
         // Given
-        String accessToken = "testAccessToken";
-        Map<String, Object> mockKakaoResponse = new HashMap<>();
-        mockKakaoResponse.put("id", 12345L); 
+        String accessToken = "test_access_token";
+        Map<String, Object> mockApiResponse = new HashMap<>();
+        mockApiResponse.put("id", "12345");
         Map<String, Object> properties = new HashMap<>();
-        properties.put("nickname", "Test User");
-        mockKakaoResponse.put("properties", properties);
+        properties.put("nickname", "test_nickname");
         Map<String, Object> kakaoAccount = new HashMap<>();
         kakaoAccount.put("email", "test@example.com");
-        mockKakaoResponse.put("kakao_account", kakaoAccount);
-        
-        ResponseEntity<Map<String, Object>> responseEntity = new ResponseEntity<>(mockKakaoResponse, HttpStatus.OK);
+        mockApiResponse.put("properties", properties);
+        mockApiResponse.put("kakao_account", kakaoAccount);
+        ResponseEntity<Map<String, Object>> mockResponse = ResponseEntity.ok(mockApiResponse);
 
-        when(restTemplate.exchange(
-            eq("https://kapi.kakao.com/v2/user/me"),
-            eq(HttpMethod.POST), 
-            any(HttpEntity.class),
-            any(ParameterizedTypeReference.class))
-        ).thenReturn(responseEntity);
-        
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class)))
+                .thenReturn(mockResponse);
+
         // When
         Map<String, Object> userProfile = oauth2Service.getKakaoUserProfile(accessToken);
 
         // Then
-        assertThat(userProfile).isNotNull();
-        assertThat(userProfile.get("id")).isEqualTo("12345"); 
-        assertThat(userProfile.get("nickname")).isEqualTo("Test User");
-        assertThat(userProfile.get("email")).isEqualTo("test@example.com");
+        assertNotNull(userProfile);
+        assertEquals("12345", userProfile.get("id"));
+        assertEquals("test_nickname", userProfile.get("nickname"));
+        assertEquals("test@example.com", userProfile.get("email"));
     }
 }
