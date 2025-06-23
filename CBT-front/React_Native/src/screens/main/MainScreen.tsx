@@ -32,15 +32,15 @@ export type Props = NativeStackScreenProps<AppStackParamList, 'Main'>;
 type Post = { id: string; title: string; date: string };
 
 interface DairyData {
-  status: string;
-  message: string;
   diaries: Post[];
-  totalCount: number;
+  pageInfo: {
+    currentPage: number;
+    totalPages: number;
+    totalElements: number;
+  };
 }
 
 interface DateData {
-  status: string;
-  message: string;
   dates: string[];
 }
 
@@ -74,23 +74,27 @@ export default function MainScreen({ navigation }: Props) {
           "month":`${year}-${month}`
         };
         const qs = toQueryString(payload);
-        // 2. backend: GET /api/diaryposts/calendar?month=YYYY-MM
+        // 2. backend: GET /api/diaries - Auth-server의 일기 API 엔드포인트
         const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaryposts/calendar?month=${qs}`
+          `${BASIC_URL}/api/diaries?${qs}`
         );
         // 3. JSON 파싱
-        const calendar_json:DateData = await res.json() 
-        // 4. JSON의 status로 성공/실패 분기
-        if (calendar_json.status !== 'success' || !calendar_json.dates) {
-          Alert.alert('dlf 조회 실패', calendar_json.message);
-          return;
+        const calendar_json: DateData = await res.json() 
+        // 4. dates 배열 존재 여부 확인
+        if (!calendar_json.dates || !Array.isArray(calendar_json.dates)) {
+          console.warn('달력 조회 실패: dates 배열이 없습니다');
+          setAllDates([]);
+        } else {
+          // 5. 정상 처리
+          setAllDates(calendar_json.dates);
         }
-        // 5. 정상 처리
-        setAllDates(calendar_json.dates);
       } catch (e: any) {
-        // 네트워크 오류 등 예외 시 Alert 띄우기
-        Alert.alert('달력 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
+        // 네트워크 오류 등 예외 시 console.warn 처리
+        console.warn('달력 조회 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
+        setAllDates([]);
       }
+
+      // 일기 목록 조회
       try {
         const payload: Record<string, any> = {
           "page":0,
@@ -100,14 +104,18 @@ export default function MainScreen({ navigation }: Props) {
         const qs = toQueryString(payload);
         const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
         const dairy_json: DairyData = await res.json();
-        if (dairy_json.status !== 'success' || !dairy_json.diaries) {
-          Alert.alert('일기 조회 실패', dairy_json.message);
-          return;
+        if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
+          console.warn('일기 조회 실패: diaries 배열이 없습니다');
+          setFilteredPosts([]);
+          setTotalCount(0);
+        } else {
+          setFilteredPosts(dairy_json.diaries);
+          setTotalCount(dairy_json.pageInfo?.totalElements || 0);
         }
-        setFilteredPosts(dairy_json.diaries);
-        setTotalCount(dairy_json.totalCount);
       } catch (e: any) {
-        Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
+        console.warn('일기 조회 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
+        setFilteredPosts([]);
+        setTotalCount(0);
       }
     };
     loadDates();
@@ -126,12 +134,12 @@ export default function MainScreen({ navigation }: Props) {
       const qs = toQueryString(payload);
       const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
       const dairy_json: DairyData = await res.json();
-      if (dairy_json.status !== 'success' || !dairy_json.diaries) {
-        Alert.alert('일기 조회 실패', dairy_json.message);
+      if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
+        Alert.alert('일기 조회 실패', '일기 데이터를 불러올 수 없습니다.');
         return;
       }
       setFilteredPosts(dairy_json.diaries);
-      setTotalCount(dairy_json.totalCount);
+      setTotalCount(dairy_json.pageInfo?.totalElements || 0);
     } catch (e: any) {
       Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
     }
@@ -150,12 +158,12 @@ export default function MainScreen({ navigation }: Props) {
       const qs = toQueryString(payload);
       const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
       const dairy_json: DairyData = await res.json();
-      if (dairy_json.status !== 'success' || !dairy_json.diaries) {
-        Alert.alert('일기 조회 실패', dairy_json.message);
+      if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
+        Alert.alert('일기 조회 실패', '일기 데이터를 불러올 수 없습니다.');
         return;
       }
       setFilteredPosts(dairy_json.diaries);
-      setTotalCount(dairy_json.totalCount);
+      setTotalCount(dairy_json.pageInfo?.totalElements || 0);
     } catch (e: any) {
       Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
     }
