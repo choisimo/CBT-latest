@@ -58,9 +58,7 @@ class DiaryServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Authentication mock for getCurrentUser() used by findDiaryById
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
+
 
         testUser = User.builder()
                 .id(1L)
@@ -253,6 +251,8 @@ class DiaryServiceTest {
     @DisplayName("findDiaryById_success")
     void findDiaryById_success() {
         // For getCurrentUser() in findDiaryById
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
         when(authentication.getName()).thenReturn(testUser.getUserName());
         when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
         
@@ -276,6 +276,8 @@ class DiaryServiceTest {
     @DisplayName("findDiaryById_notFoundOrAccessDenied")
     void findDiaryById_notFoundOrAccessDenied() {
         // For getCurrentUser() in findDiaryById
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
         when(authentication.getName()).thenReturn(testUser.getUserName());
         when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
         

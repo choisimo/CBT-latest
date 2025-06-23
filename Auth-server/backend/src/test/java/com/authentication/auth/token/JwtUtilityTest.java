@@ -15,9 +15,11 @@ public class JwtUtilityTest {
     void testShortLivedAccessToken() throws InterruptedException {
         // JwtProperties 객체 생성
         JwtProperties jwtProperties = new JwtProperties(
-                "eyJraWQiOiJlZjdlY2JkMy0xODcyLTRkMGUtYjYyZC03NzJkZjU2ZDcyMjEiLCJhbGciOiJSUzUxMiJ9.ew0KICAic3ViIjogIjExMzI0M2ZkaDRzZGZoMCIsDQogICJuYW1lIjogImFzZGFzZGcxMjROYXQ0MzUzNGgiLA0KICAiaWF0IjogMTUxNjEyNDVmZ2g5MDIyZXINCn0.cvsTbjRw-DWUQcrgacNmpBFzSYO8rjEvY6oMlTFcicizb1VFVVgGPf1wOJHwkc09rxzmExD7wC2q9WG_VVQ05lqzTUUJ_OVUxiJ2KNHPL3ysvpCQH5i70zCoqkCNqTu_-WHF09HXV_VEZNsGBSHQokOGqdZr8cdpSVeo2Y2u2Bx_LKf7j6XbW0xL_QJeV1c1GZt6El1lbC01tptfLYc43KGhW7fpktxbyuPito3QCx7oYgi4IESABpDWGNAVTidt1v-TE-cEhoo8D5sv6zlAR49M-8ITj8BoRJdTqb-v85d2K-jJaG10bjRQxN16LphaD5vFNb7LvcyJdre15HTYJw", // secretKey
-                10L * 60,  // accessTokenExpirationMinutes 
-                3600L * 60 // refreshTokenExpirationMinutes 
+                "testSecretKeytestSecretKeytestSecretKeytestSecretKeytestSecretKey",
+                "testSecretKey2testSecretKey2testSecretKey2testSecretKey2testSecretKey2",
+                "testAuthorizedKeytestAuthorizedKeytestAuthorizedKeytestAuthorizedKey",
+                3600000L, // 1 hour
+                86400000L  // 24 hours
         );
 
         // 만료 시간 10초로 설정

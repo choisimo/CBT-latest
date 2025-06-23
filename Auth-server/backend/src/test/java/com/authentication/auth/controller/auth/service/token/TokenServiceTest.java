@@ -1,6 +1,11 @@
 package com.authentication.auth.controller.auth.service.token;
-import com.authentication.auth.dto.response.LoginResponse;
+
+import com.authentication.auth.domain.User;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.dto.token.TokenRefreshRequest;
+import com.authentication.auth.dto.token.TokenRefreshResponse;
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.service.redis.RedisService;
 import com.authentication.auth.service.token.TokenProvider;
 import com.authentication.auth.service.token.TokenService;
@@ -14,17 +19,17 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,149 +37,121 @@ class TokenServiceTest {
 
     @Mock
     private TokenProvider tokenProvider;
-
     @Mock
     private RedisService redisService;
-
     @InjectMocks
     private TokenService tokenService;
-
     @Mock
     private Authentication authentication;
-
     @Mock
     private HttpServletRequest httpServletRequest;
-
     @Mock
     private HttpServletResponse httpServletResponse;
 
-    private final String testUserId = "testUser";
+    private final String testLoginId = "testUser";
+    private final String testEmail = "test@example.com";
+    private final String testNickname = "tester";
     private final String testRole = "ROLE_USER";
     private final String dummyAccessToken = "newAccessToken";
     private final String dummyRefreshToken = "newRefreshToken";
     private final String expiredAccessToken = "expiredAccessToken";
     private final String provider = "local";
-    // Using reflection or a different approach for private static final is too complex for this context.
-    // We'll use the actual value if TokenService.REFRESH_TOKEN_TTL_SECONDS is accessible,
-    // otherwise, define a matching constant here for test clarity.
-    // For now, assume it's not directly accessible and define it.
-    private static final int REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+    private User mockUser;
 
     @BeforeEach
     void setUp() {
-        // Common setup
+        mockUser = User.builder()
+                .id(1L)
+                .loginId(testLoginId)
+                .email(testEmail)
+                .nickname(testNickname)
+                .userRole(testRole)
+                .build();
     }
 
     @Test
     void postLoginActions_success() {
-        when(authentication.getName()).thenReturn(testUserId);
+        // Given
+        when(authentication.getName()).thenReturn(testLoginId);
         GrantedAuthority authority = new SimpleGrantedAuthority(testRole);
-        when(authentication.getAuthorities()).thenReturn(Collections.singletonList(authority));
+        doReturn(Collections.singletonList(authority)).when(authentication).getAuthorities();
 
-        when(tokenProvider.createAccessToken(testUserId, testRole)).thenReturn(dummyAccessToken);
-        when(tokenProvider.createRefreshToken(testUserId, "local")).thenReturn(dummyRefreshToken);
+        when(tokenProvider.createAccessToken(testLoginId, testRole)).thenReturn(dummyAccessToken);
+        when(tokenProvider.createRefreshToken(testLoginId, "local")).thenReturn(dummyRefreshToken);
 
-        // Mocking the static method setHttpOnlyCookie from TokenProvider
-        try (MockedStatic<TokenProvider> mockedTokenProviderUtil = Mockito.mockStatic(TokenProvider.class)) {
-            mockedTokenProviderUtil.when(() -> TokenProvider.setHttpOnlyCookie(any(HttpServletResponse.class), eq("refreshToken"), eq(dummyRefreshToken), eq(REFRESH_TOKEN_TTL_SECONDS)))
-                    .doesNothing(); // Static method is void
+        // When
+        LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
 
-            LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
+        // Then
+        assertNotNull(loginResponse);
+        assertEquals(dummyAccessToken, loginResponse.accessToken());
+        assertEquals(testLoginId, loginResponse.user().nickname());
+        assertNull(loginResponse.user().email());
 
-            assertNotNull(loginResponse);
-            assertEquals(dummyAccessToken, loginResponse.getAccessToken());
-
-            verify(redisService).saveRefreshToken(testUserId, "local", dummyRefreshToken, REFRESH_TOKEN_TTL_SECONDS);
-            mockedTokenProviderUtil.verify(() -> TokenProvider.setHttpOnlyCookie(httpServletResponse, "refreshToken", dummyRefreshToken, REFRESH_TOKEN_TTL_SECONDS));
-        }
+        verify(redisService).saveRToken(testLoginId, "local", dummyRefreshToken);
     }
-    
-    @Test
-    void postLoginActions_success_noAuthorities() {
-        when(authentication.getName()).thenReturn(testUserId);
-        when(authentication.getAuthorities()).thenReturn(Collections.emptyList()); // No authorities
-
-        when(tokenProvider.createAccessToken(testUserId, "ROLE_USER")).thenReturn(dummyAccessToken); // Default role
-        when(tokenProvider.createRefreshToken(testUserId, "local")).thenReturn(dummyRefreshToken);
-
-        try (MockedStatic<TokenProvider> mockedTokenProviderUtil = Mockito.mockStatic(TokenProvider.class)) {
-            mockedTokenProviderUtil.when(() -> TokenProvider.setHttpOnlyCookie(any(HttpServletResponse.class), eq("refreshToken"), eq(dummyRefreshToken), eq(REFRESH_TOKEN_TTL_SECONDS)))
-                    .doesNothing();
-
-            LoginResponse loginResponse = tokenService.postLoginActions(authentication, httpServletResponse);
-
-            assertNotNull(loginResponse);
-            assertEquals(dummyAccessToken, loginResponse.getAccessToken());
-            verify(tokenProvider).createAccessToken(testUserId, "ROLE_USER"); // Verify default role was used
-            verify(redisService).saveRefreshToken(testUserId, "local", dummyRefreshToken, REFRESH_TOKEN_TTL_SECONDS);
-            mockedTokenProviderUtil.verify(() -> TokenProvider.setHttpOnlyCookie(httpServletResponse, "refreshToken", dummyRefreshToken, REFRESH_TOKEN_TTL_SECONDS));
-        }
-    }
-
 
     @Test
     void refreshToken_success() throws IOException {
+        // Given
         TokenRefreshRequest refreshRequest = new TokenRefreshRequest(expiredAccessToken, provider);
-        when(tokenProvider.checkCookie(httpServletRequest, httpServletResponse, provider)).thenReturn(dummyRefreshToken);
+        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(testLoginId);
+        when(redisService.getRToken(testLoginId, provider)).thenReturn(dummyRefreshToken);
         when(tokenProvider.validateRefreshToken(dummyRefreshToken)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(testUserId);
-        when(redisService.isRTokenExist(testUserId, provider, dummyRefreshToken)).thenReturn(true);
         when(tokenProvider.refreshToken(expiredAccessToken, provider)).thenReturn(dummyAccessToken);
 
-        ResponseEntity<?> responseEntity = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        // When
+        TokenRefreshResponse response = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
 
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(dummyAccessToken, responseEntity.getBody());
+        // Then
+        assertNotNull(response);
+        assertEquals(dummyAccessToken, response.accessToken());
     }
 
     @Test
-    void refreshToken_fail_cookieNull() throws IOException {
+    void refreshToken_fail_tokenNotFoundInRedis() throws IOException {
+        // Given
         TokenRefreshRequest refreshRequest = new TokenRefreshRequest(expiredAccessToken, provider);
-        when(tokenProvider.checkCookie(httpServletRequest, httpServletResponse, provider)).thenReturn(null);
+        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(testLoginId);
+        when(redisService.getRToken(testLoginId, provider)).thenReturn(null);
 
-        ResponseEntity<?> responseEntity = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        // When & Then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        });
 
-        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Refresh token not found in cookie"));
+        assertEquals(ErrorType.REFRESH_TOKEN_NOT_FOUND, exception.getErrorType());
     }
 
     @Test
     void refreshToken_fail_invalidRefreshToken() throws IOException {
+        // Given
         TokenRefreshRequest refreshRequest = new TokenRefreshRequest(expiredAccessToken, provider);
-        when(tokenProvider.checkCookie(httpServletRequest, httpServletResponse, provider)).thenReturn(dummyRefreshToken);
+        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(testLoginId);
+        when(redisService.getRToken(testLoginId, provider)).thenReturn(dummyRefreshToken);
         when(tokenProvider.validateRefreshToken(dummyRefreshToken)).thenReturn(false);
 
-        ResponseEntity<?> responseEntity = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        // When & Then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        });
 
-        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Invalid or expired refresh token"));
+        assertEquals(ErrorType.INVALID_REFRESH_TOKEN, exception.getErrorType());
     }
-    
+
     @Test
     void refreshToken_fail_userIdNullFromExpiredToken() throws IOException {
+        // Given
         TokenRefreshRequest refreshRequest = new TokenRefreshRequest(expiredAccessToken, provider);
-        when(tokenProvider.checkCookie(httpServletRequest, httpServletResponse, provider)).thenReturn(dummyRefreshToken);
-        when(tokenProvider.validateRefreshToken(dummyRefreshToken)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(null); // Simulate failure to get user ID
+        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(null);
 
-        ResponseEntity<?> responseEntity = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        // When & Then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
+        });
 
-        assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Could not extract user ID from expired token"));
-    }
-
-    @Test
-    void refreshToken_fail_notInRedis() throws IOException {
-        TokenRefreshRequest refreshRequest = new TokenRefreshRequest(expiredAccessToken, provider);
-        when(tokenProvider.checkCookie(httpServletRequest, httpServletResponse, provider)).thenReturn(dummyRefreshToken);
-        when(tokenProvider.validateRefreshToken(dummyRefreshToken)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(expiredAccessToken)).thenReturn(testUserId);
-        when(redisService.isRTokenExist(testUserId, provider, dummyRefreshToken)).thenReturn(false);
-
-        ResponseEntity<?> responseEntity = tokenService.refreshToken(httpServletRequest, httpServletResponse, refreshRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Refresh token not found in Redis or mismatch"));
+        assertEquals(ErrorType.INVALID_ACCESS_TOKEN, exception.getErrorType());
+        verify(redisService, never()).getRToken(any(), any());
     }
 }

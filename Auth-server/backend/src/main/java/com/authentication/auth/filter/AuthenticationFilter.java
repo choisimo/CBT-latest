@@ -41,7 +41,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final int accessTokenValidity;
     private final AntPathRequestMatcher authLoginMatcher;
 
-    private static final String SPRING_SECURITY_FORM_USERNAME_KEY = "loginId";
+    private static final String SPRING_SECURITY_FORM_USERNAME_KEY = "email";
     private static final String SPRING_SECURITY_FORM_PASSWORD_KEY = "password";
 
     public AuthenticationFilter(
@@ -57,7 +57,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         this.redisService = redisService;
         this.cookieDomain = cookieDomain;
         this.accessTokenValidity = accessTokenValidity;
-        this.authLoginMatcher = new AntPathRequestMatcher("/api/auth/login", "POST");
+        this.authLoginMatcher = new AntPathRequestMatcher("/api/public/login", "POST");
     }
 
     @Override
@@ -107,7 +107,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            objectMapper.writeValue(response.getOutputStream(), ApiResponse.success(loginResponseDto));
+            objectMapper.writeValue(response.getOutputStream(), ApiResponse.success(loginResponseDto, "로그인 성공"));
             log.info("인증 성공: {}", principal.getUser().getEmail());
 
         } catch (AuthenticationException failed) {

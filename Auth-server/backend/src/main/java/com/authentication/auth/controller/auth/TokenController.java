@@ -61,7 +61,7 @@ public class TokenController {
         return ResponseEntity.ok(ApiResponse.success(loginResponse, "로그인에 성공했습니다."));
     }
 
-    @PostMapping("/refresh") // Ensuring PostMapping is present
+    @PostMapping("/api/protected/refresh") // Ensuring PostMapping is present
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody TokenRefreshRequest request) throws IOException {
 
         if (request == null || request.expiredToken() == null || request.provider() == null) {

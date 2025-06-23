@@ -1,9 +1,13 @@
 package com.authentication.auth.controller.auth;
 
-import com.authentication.auth.dto.response.LoginResponse;
+import com.authentication.auth.dto.response.ApiResponse;
 import com.authentication.auth.dto.users.LoginRequest;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.dto.token.TokenRefreshRequest;
+import com.authentication.auth.dto.token.TokenRefreshResponse;
 import com.authentication.auth.service.token.TokenService;
+import com.authentication.auth.exception.CustomException;
+import com.authentication.auth.exception.ErrorType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,11 +48,12 @@ class TokenControllerTest {
     private HttpServletRequest httpServletRequest;
 
     @Mock
-    private Authentication authentication; // Mocked Authentication object
+    private Authentication authentication;
 
     private LoginRequest loginRequest;
     private TokenRefreshRequest tokenRefreshRequest;
     private final String testUserId = "testUser";
+    private final String testEmail = "test@example.com";
     private final String testPassword = "password";
     private final String dummyAccessToken = "dummyAccessToken";
     private final String dummyExpiredToken = "expiredToken";
@@ -56,25 +61,24 @@ class TokenControllerTest {
 
     @BeforeEach
     void setUp() {
-        loginRequest = new LoginRequest(testUserId, testPassword);
+        loginRequest = new LoginRequest(testUserId, null, testPassword);
         tokenRefreshRequest = new TokenRefreshRequest(dummyExpiredToken, dummyProvider);
     }
 
     @Test
     void login_success() {
-        LoginResponse mockLoginResponse = new LoginResponse(dummyAccessToken);
-        UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(testUserId, testPassword);
+        LoginResponse.UserInfo mockUserInfo = new LoginResponse.UserInfo(1L, testUserId, testEmail);
+        LoginResponse mockLoginResponse = new LoginResponse(dummyAccessToken, mockUserInfo);
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication); // Return the mocked Authentication
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(tokenService.postLoginActions(authentication, httpServletResponse)).thenReturn(mockLoginResponse);
 
-        ResponseEntity<LoginResponse> responseEntity = tokenController.login(loginRequest, httpServletResponse);
+        ResponseEntity<ApiResponse<LoginResponse>> responseEntity = tokenController.login(loginRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(mockLoginResponse, responseEntity.getBody());
-        verify(authenticationManager).authenticate(argThat(token ->
-                token.getName().equals(testUserId) && token.getCredentials().equals(testPassword)
-        ));
+        assertNotNull(responseEntity.getBody());
+        assertEquals(mockLoginResponse, responseEntity.getBody().data());
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(tokenService).postLoginActions(authentication, httpServletResponse);
     }
 
@@ -93,43 +97,51 @@ class TokenControllerTest {
 
     @Test
     void refreshToken_success() throws IOException {
-        ResponseEntity<Object> mockServiceResponse = ResponseEntity.ok().body("newAccessToken");
-        when(tokenService.refreshToken(httpServletRequest, httpServletResponse, tokenRefreshRequest))
-                .thenReturn(mockServiceResponse);
+        TokenRefreshResponse mockServiceResponse = new TokenRefreshResponse("newAccessToken");
+        when(tokenService.refreshToken(any(), any(), any())).thenReturn(mockServiceResponse);
 
-        ResponseEntity<?> responseEntity = tokenController.refreshToken(httpServletRequest, httpServletResponse, tokenRefreshRequest);
+        ResponseEntity<ApiResponse<TokenRefreshResponse>> responseEntity = tokenController.refreshToken(httpServletRequest, httpServletResponse, tokenRefreshRequest);
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals("newAccessToken", responseEntity.getBody());
+        assertNotNull(responseEntity.getBody());
+        assertEquals("newAccessToken", responseEntity.getBody().data().accessToken());
         verify(tokenService).refreshToken(httpServletRequest, httpServletResponse, tokenRefreshRequest);
     }
 
     @Test
     void refreshToken_invalidPayload_nullRequest() throws IOException {
-        ResponseEntity<?> responseEntity = tokenController.refreshToken(httpServletRequest, httpServletResponse, null);
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenController.refreshToken(httpServletRequest, httpServletResponse, null);
+        });
 
-        assertEquals(HttpStatus.NOT_ACCEPTABLE, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Invalid refresh token request payload"));
+        assertEquals(ErrorType.INVALID_REQUEST_BODY, exception.getErrorType());
+        assertEquals("유효하지 않은 토큰 갱신 요청입니다.", exception.getMessage());
         verify(tokenService, never()).refreshToken(any(), any(), any());
     }
 
     @Test
     void refreshToken_invalidPayload_nullExpiredToken() throws IOException {
         TokenRefreshRequest invalidRequest = new TokenRefreshRequest(null, dummyProvider);
-        ResponseEntity<?> responseEntity = tokenController.refreshToken(httpServletRequest, httpServletResponse, invalidRequest);
 
-        assertEquals(HttpStatus.NOT_ACCEPTABLE, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Invalid refresh token request payload"));
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenController.refreshToken(httpServletRequest, httpServletResponse, invalidRequest);
+        });
+
+        assertEquals(ErrorType.INVALID_REQUEST_BODY, exception.getErrorType());
+        assertEquals("유효하지 않은 토큰 갱신 요청입니다.", exception.getMessage());
         verify(tokenService, never()).refreshToken(any(), any(), any());
     }
 
     @Test
     void refreshToken_invalidPayload_nullProvider() throws IOException {
         TokenRefreshRequest invalidRequest = new TokenRefreshRequest(dummyExpiredToken, null);
-        ResponseEntity<?> responseEntity = tokenController.refreshToken(httpServletRequest, httpServletResponse, invalidRequest);
 
-        assertEquals(HttpStatus.NOT_ACCEPTABLE, responseEntity.getStatusCode());
-        assertTrue(responseEntity.getBody().toString().contains("Invalid refresh token request payload"));
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            tokenController.refreshToken(httpServletRequest, httpServletResponse, invalidRequest);
+        });
+
+        assertEquals(ErrorType.INVALID_REQUEST_BODY, exception.getErrorType());
+        assertEquals("유효하지 않은 토큰 갱신 요청입니다.", exception.getMessage());
         verify(tokenService, never()).refreshToken(any(), any(), any());
     }
 }

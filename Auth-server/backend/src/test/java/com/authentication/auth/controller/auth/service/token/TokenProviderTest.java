@@ -4,6 +4,7 @@ import com.authentication.auth.configuration.token.JwtUtility;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.service.token.TokenProvider;
 import io.jsonwebtoken.Claims;
+
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -102,15 +103,17 @@ class TokenProviderTest {
     
     @Test
     void getExpiration_success() {
-        Claims mockClaims = new DefaultClaims();
+        Claims mockClaims = Jwts.claims();
         long futureTime = System.currentTimeMillis() + 100000;
         mockClaims.setExpiration(new Date(futureTime));
         when(jwtUtility.extractClaims(dummyToken)).thenReturn(mockClaims);
 
-        Long expiration = tokenProvider.getExpiration(dummyToken);
+        Long expirationInMillis = tokenProvider.getExpiration(dummyToken);
 
-        assertNotNull(expiration);
-        assertEquals(futureTime, expiration);
+        assertNotNull(expirationInMillis);
+        // JWT expiration is managed in seconds, so comparing milliseconds can lead to failures.
+        // We compare at the second-level to ensure correctness.
+        assertEquals(futureTime / 1000, expirationInMillis / 1000);
         verify(jwtUtility).extractClaims(dummyToken);
     }
 

@@ -4,6 +4,7 @@ import com.authentication.auth.domain.User;
 import com.authentication.auth.dto.users.JoinRequest;
 import com.authentication.auth.dto.users.LoginRequest;
 import com.authentication.auth.dto.users.LoginResponse;
+import com.authentication.auth.dto.users.UserResponseDto;
 import com.authentication.auth.dto.token.TokenDto;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
@@ -140,6 +141,13 @@ public class UserService {
     @Transactional(readOnly = true) // checkLoginIdIsDuplicate는 읽기 전용
     public boolean checkLoginIdIsDuplicate(String loginId) {
         return repository.existsByLoginId(loginId);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponseDto findByLoginId(String loginId) {
+        User user = repository.findByLoginId(loginId)
+                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + loginId));
+        return new UserResponseDto(user.getId(), user.getNickname(), user.getEmail(), user.getLoginId(), user.getIsPremium(), user.getUserRole());
     }
 
 }

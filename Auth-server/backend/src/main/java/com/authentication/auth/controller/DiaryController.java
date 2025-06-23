@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/diary")
+@RequestMapping("/api/diaries")
 @RequiredArgsConstructor
 public class DiaryController {
 

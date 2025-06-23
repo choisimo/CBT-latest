@@ -1,13 +1,14 @@
 package com.authentication.auth.service.oauth2;
 
 import com.authentication.auth.configuration.oauth2.OauthProperties;
-import com.authentication.auth.configuration.oauth2.OauthProviderProperties;
+
 import com.authentication.auth.configuration.token.JwtUtility;
 import com.authentication.auth.domain.AuthProvider;
 import com.authentication.auth.domain.User;
 import com.authentication.auth.domain.UserAuthentication;
 import com.authentication.auth.domain.UserAuthenticationId;
 import com.authentication.auth.dto.token.TokenDto;
+import com.authentication.auth.dto.users.LoginResponse;
 import com.authentication.auth.repository.AuthProviderRepository;
 import com.authentication.auth.repository.UserAuthenticationRepository;
 import com.authentication.auth.repository.UserRepository;
@@ -65,20 +66,17 @@ class Oauth2ServiceTest {
 
     private User testUser;
     private AuthProvider kakaoAuthProvider;
-    private OauthProviderProperties kakaoProps;
+        private OauthProperties.Client kakaoProps;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(oauth2Service, "domain", "test.com");
 
-        testUser = User.builder().id(1L).userName("testuser").email("test@example.com").userRole("USER").isActive("ACTIVE").build();
-        kakaoAuthProvider = AuthProvider.builder().id(1L).providerName("KAKAO").build();
+                testUser = User.builder().id(1L).nickname("testuser").email("test@example.com").userRole("USER").isActive("ACTIVE").build();
+        kakaoAuthProvider = AuthProvider.builder().id(1).providerName("KAKAO").build();
 
-        kakaoProps = new OauthProviderProperties();
-        kakaoProps.setClientId("kakao-client-id");
-        kakaoProps.setClientSecret("kakao-client-secret");
-        kakaoProps.setRedirectUri("http://localhost/kakao-redirect");
-        when(oauthProperties.kakao()).thenReturn(kakaoProps);
+                kakaoProps = new OauthProperties.Client("kakao-client-id", "kakao-client-secret", "http://localhost/kakao-redirect");
+
     }
 
     @Test
@@ -99,7 +97,7 @@ class Oauth2ServiceTest {
 
         when(userAuthenticationRepository.findByAuthProvider_ProviderNameAndSocialId(provider, oauthId))
                 .thenReturn(Optional.empty());
-        when(userRepository.existsByUserName("newuser@example.com")).thenReturn(false);
+                when(userRepository.existsByEmail("newuser@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(2L); 
@@ -143,7 +141,7 @@ class Oauth2ServiceTest {
                 .thenReturn(Optional.of(existingAuth));
         when(authProviderRepository.findByProviderName(provider)).thenReturn(Optional.of(kakaoAuthProvider));
         when(userAuthenticationRepository.findById(any(UserAuthenticationId.class))).thenReturn(Optional.of(existingAuth));
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 
         // When
@@ -160,6 +158,7 @@ class Oauth2ServiceTest {
     @DisplayName("handleOauth2Login - Kakao 성공")
     void handleOauth2Login_Kakao_Success() {
         // Given
+        when(oauthProperties.kakao()).thenReturn(kakaoProps);
         String provider = "kakao";
         String tempCode = "kakaoTempCode";
         Map<String, String> requestBody = Map.of("tempCode", tempCode);
@@ -175,22 +174,20 @@ class Oauth2ServiceTest {
         userProfile.put("kakao_account", kakaoAccount);
         doReturn(userProfile).when(oauth2Service).getKakaoUserProfile("kakao_access_token");
 
-        User user = User.builder().id(1L).userName("kakao@example.com").userRole("USER").isActive("ACTIVE").build();
+                User user = User.builder().id(1L).nickname("kakao@example.com").userRole("USER").isActive("ACTIVE").build();
         doReturn(user).when(oauth2Service).saveOrUpdateOauth2User(eq(provider), eq("kakao123"), anyMap());
         
-        TokenDto appTokenDto = new TokenDto("app_access_token", "app_refresh_token_unused", 1L);
+        TokenDto appTokenDto = new TokenDto("app_access_token", "app_refresh_token_unused");
         when(jwtUtility.buildToken(eq("kakao@example.com"), any(List.class))).thenReturn(appTokenDto);
         
         doNothing().when(redisService).saveRToken(eq("kakao123"), eq(provider), eq("kakao_refresh_token"));
 
         // When
-        ResponseEntity<?> responseEntity = oauth2Service.handleOauth2Login(requestBody, httpServletResponse, provider);
+        LoginResponse response = oauth2Service.handleOauth2Login(requestBody, httpServletResponse, provider);
 
         // Then
-        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Map<String, Object> responseBody = (Map<String, Object>) responseEntity.getBody();
-        assertThat(responseBody).isNotNull();
-        assertThat(responseBody.get("access_token")).isEqualTo("app_access_token");
+        assertThat(response).isNotNull();
+        assertThat(response.accessToken()).isEqualTo("app_access_token");
         
         verify(redisService).saveRToken("kakao123", provider, "kakao_refresh_token");
         verify(httpServletResponse).addHeader("Authorization", "Bearer app_access_token");
@@ -201,6 +198,7 @@ class Oauth2ServiceTest {
     @DisplayName("getKakaoTokens - 성공")
     void getKakaoTokens_Success() {
         // Given
+        when(oauthProperties.kakao()).thenReturn(kakaoProps);
         String tempCode = "testCode";
         Map<String, Object> mockApiResponse = new HashMap<>();
         mockApiResponse.put("access_token", "mock_access_token");
