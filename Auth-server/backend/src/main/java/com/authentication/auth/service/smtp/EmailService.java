@@ -14,6 +14,7 @@ import com.authentication.auth.dto.email.CustomEmailRequest;
 import com.authentication.auth.exception.CustomException;
 import com.authentication.auth.exception.ErrorType;
 import com.authentication.auth.repository.UserRepository;
+import com.authentication.auth.service.redis.RedisService;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -34,6 +35,7 @@ public class EmailService {
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
     private final ResourceLoader resourceLoader;
+    private final RedisService redisService;
 
     private String randomNum() {
         String rand = UUID.randomUUID().toString().replace("-", "");
@@ -148,5 +150,47 @@ public class EmailService {
             throw new CustomException(ErrorType.INVALID_REQUEST_PARAMETER, "이메일 주소가 비어있습니다.");
         }
         return userRepository.existsByEmail(userEmail);
+    }
+
+    public String sendVerificationCode(String email){
+        String verificationCode = randomNum();
+        String from_email = sender_email;
+        String to_email = email;
+        String title = "CBT-Diary 인증 코드입니다.";
+        String content;
+
+        try {
+            org.springframework.core.io.Resource resource = resourceLoader.getResource("classpath:templates/email/email_verification_code.html");
+            try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                content = FileCopyUtils.copyToString(reader);
+            }
+            content = content.replace("{{verificationCode}}", verificationCode);
+        } catch (IOException e) {
+            log.error("Failed to load email template for verification code: {}", e.getMessage());
+            throw new CustomException(ErrorType.EMAIL_TEMPLATE_LOAD_FAILURE, "인증 코드 이메일 템플릿 로드에 실패했습니다.");
+        }
+
+        // 이메일 발송
+        mailSend(from_email, to_email, title, content);
+        
+        // Redis에 인증 코드 저장 (5분간 유효)
+        redisService.saveEmailCode(email, verificationCode);
+        
+        return verificationCode;
+    }
+
+    /**
+     * 이메일 인증 코드 확인
+     * @param email 확인할 이메일
+     * @param code 사용자가 입력한 인증 코드
+     * @return 인증 성공 여부
+     */
+    public boolean verifyCode(String email, String code) {
+        try {
+            return redisService.checkEmailCode(email, code);
+        } catch (Exception e) {
+            log.error("인증 코드 확인 중 오류 발생 - email: {}, error: {}", email, e.getMessage());
+            return false;
+        }
     }
 }

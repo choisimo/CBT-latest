@@ -42,6 +42,12 @@ public class AIResponseDto {
     @JsonProperty("updatedAt")
     private LocalDateTime updatedAt;
     
+    @JsonProperty("status")
+    private String status;
+    
+    @JsonProperty("errorMessage")
+    private String errorMessage;
+    
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

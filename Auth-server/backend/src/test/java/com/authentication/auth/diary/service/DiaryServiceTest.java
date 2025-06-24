@@ -8,6 +8,7 @@ import com.authentication.auth.dto.diary.DiaryCreateRequest;
 import com.authentication.auth.dto.diary.DiaryUpdateRequest;
 import com.authentication.auth.repository.UserRepository;
 import com.authentication.auth.service.diary.DiaryManagementService;
+import com.authentication.auth.service.diary.DiaryAnalysisService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +41,9 @@ class DiaryServiceTest {
 
     @InjectMocks
     private DiaryManagementService diaryService;
+
+    @Mock
+    private DiaryAnalysisService diaryAnalysisService;
 
     @Mock
     private UserDetails userDetails;
@@ -100,16 +104,17 @@ class DiaryServiceTest {
     @Test
     @DisplayName("createDiaryPost_success")
     void createDiaryPost_success() {
-        when(userDetails.getUsername()).thenReturn(testUser.getUserName());
-        when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
-        
+        when(userDetails.getUsername()).thenReturn(testUser.getLoginId());
+        when(userRepository.findByUserName(testUser.getLoginId())).thenReturn(Optional.of(testUser));
+
         Diary savedDiary = Diary.builder()
-                                .id(2L)
-                                .user(testUser)
-                                .title(diaryCreateRequest.getTitle())
-                                .content(diaryCreateRequest.getContent())
-                                .build();
+                .id(2L)
+                .user(testUser)
+                .title(diaryCreateRequest.getTitle())
+                .content(diaryCreateRequest.getContent())
+                .build();
         when(diaryRepository.save(any(Diary.class))).thenReturn(savedDiary);
+        doNothing().when(diaryAnalysisService).requestDiaryAnalysis(any(Diary.class));
 
         DiaryResponseDto responseDto = diaryService.createDiaryPost(diaryCreateRequest, userDetails);
 
@@ -117,23 +122,24 @@ class DiaryServiceTest {
         assertEquals(savedDiary.getId(), responseDto.getId());
         assertEquals(diaryCreateRequest.getTitle(), responseDto.getTitle());
         assertEquals(diaryCreateRequest.getContent(), responseDto.getContent());
-        assertEquals(testUser.getUserName(), responseDto.getUserName());
+        assertEquals(testUser.getNickname(), responseDto.getUserName());
 
-        verify(userRepository, times(1)).findByUserName(testUser.getUserName());
+        verify(userRepository, times(1)).findByUserName(testUser.getLoginId());
         verify(diaryRepository, times(1)).save(any(Diary.class));
+        verify(diaryAnalysisService, times(1)).requestDiaryAnalysis(any(Diary.class));
     }
 
     @Test
     @DisplayName("createDiaryPost_userNotFound")
     void createDiaryPost_userNotFound() {
-        when(userDetails.getUsername()).thenReturn("unknownUser");
-        when(userRepository.findByUserName("unknownUser")).thenReturn(Optional.empty());
+        when(userDetails.getUsername()).thenReturn("nonexistentuser");
+        when(userRepository.findByUserName("nonexistentuser")).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> {
             diaryService.createDiaryPost(diaryCreateRequest, userDetails);
         });
 
-        verify(userRepository, times(1)).findByUserName("unknownUser");
+        verify(userRepository, times(1)).findByUserName("nonexistentuser");
         verify(diaryRepository, never()).save(any(Diary.class));
     }
 
@@ -141,26 +147,19 @@ class DiaryServiceTest {
     @Test
     @DisplayName("updateDiaryPost_success")
     void updateDiaryPost_success() {
-        when(userDetails.getUsername()).thenReturn(testUser.getUserName());
-        when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
+        when(userDetails.getUsername()).thenReturn(testUser.getLoginId());
+        when(userRepository.findByUserName(testUser.getLoginId())).thenReturn(Optional.of(testUser));
         when(diaryRepository.findById(testDiary.getId())).thenReturn(Optional.of(testDiary));
-        
-        Diary updatedDiary = Diary.builder()
-                                .id(testDiary.getId())
-                                .user(testUser)
-                                .title(diaryUpdateRequest.getTitle())
-                                .content(diaryUpdateRequest.getContent())
-                                .build();
-        when(diaryRepository.save(any(Diary.class))).thenReturn(updatedDiary);
+        when(diaryRepository.save(any(Diary.class))).thenReturn(testDiary);
 
         DiaryResponseDto responseDto = diaryService.updateDiaryPost(testDiary.getId(), diaryUpdateRequest, userDetails);
 
         assertNotNull(responseDto);
-        assertEquals(testDiary.getId(), responseDto.getId());
         assertEquals(diaryUpdateRequest.getTitle(), responseDto.getTitle());
         assertEquals(diaryUpdateRequest.getContent(), responseDto.getContent());
+        assertEquals(testUser.getNickname(), responseDto.getUserName());
 
-        verify(userRepository, times(1)).findByUserName(testUser.getUserName());
+        verify(userRepository, times(1)).findByUserName(testUser.getLoginId());
         verify(diaryRepository, times(1)).findById(testDiary.getId());
         verify(diaryRepository, times(1)).save(any(Diary.class));
     }
@@ -253,11 +252,11 @@ class DiaryServiceTest {
         // For getCurrentUser() in findDiaryById
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        when(authentication.getName()).thenReturn(testUser.getUserName());
-        when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
-        
+        when(authentication.getName()).thenReturn(testUser.getLoginId());
+        when(userRepository.findByUserName(testUser.getLoginId())).thenReturn(Optional.of(testUser));
+
         // findDiaryById uses findByIdAndUserId
-        when(diaryRepository.findByIdAndUserId(testDiary.getId(), testUser.getId())).thenReturn(Optional.of(testDiary));
+        when(diaryRepository.findByIdAndUser_Id(testDiary.getId(), testUser.getId())).thenReturn(Optional.of(testDiary));
 
         DiaryResponseDto responseDto = diaryService.findDiaryById(testDiary.getId());
 
@@ -265,11 +264,11 @@ class DiaryServiceTest {
         assertEquals(testDiary.getId(), responseDto.getId());
         assertEquals(testDiary.getTitle(), responseDto.getTitle());
         assertEquals(testDiary.getContent(), responseDto.getContent());
-        assertEquals(testUser.getUserName(), responseDto.getUserName());
+        assertEquals(testUser.getNickname(), responseDto.getUserName());
 
         verify(authentication, times(1)).getName();
-        verify(userRepository, times(1)).findByUserName(testUser.getUserName());
-        verify(diaryRepository, times(1)).findByIdAndUserId(testDiary.getId(), testUser.getId());
+        verify(userRepository, times(1)).findByUserName(testUser.getLoginId());
+        verify(diaryRepository, times(1)).findByIdAndUser_Id(testDiary.getId(), testUser.getId());
     }
 
     @Test
@@ -278,18 +277,18 @@ class DiaryServiceTest {
         // For getCurrentUser() in findDiaryById
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        when(authentication.getName()).thenReturn(testUser.getUserName());
-        when(userRepository.findByUserName(testUser.getUserName())).thenReturn(Optional.of(testUser));
-        
+        when(authentication.getName()).thenReturn(testUser.getLoginId());
+        when(userRepository.findByUserName(testUser.getLoginId())).thenReturn(Optional.of(testUser));
+
         // findDiaryById uses findByIdAndUserId, returns empty if not found or user mismatch
-        when(diaryRepository.findByIdAndUserId(testDiary.getId(), testUser.getId())).thenReturn(Optional.empty());
+        when(diaryRepository.findByIdAndUser_Id(testDiary.getId(), testUser.getId())).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> {
             diaryService.findDiaryById(testDiary.getId());
         });
-        
+
         verify(authentication, times(1)).getName();
-        verify(userRepository, times(1)).findByUserName(testUser.getUserName());
-        verify(diaryRepository, times(1)).findByIdAndUserId(testDiary.getId(), testUser.getId());
+        verify(userRepository, times(1)).findByUserName(testUser.getLoginId());
+        verify(diaryRepository, times(1)).findByIdAndUser_Id(testDiary.getId(), testUser.getId());
     }
 }

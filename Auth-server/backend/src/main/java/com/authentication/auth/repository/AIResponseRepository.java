@@ -29,9 +29,9 @@ public interface AIResponseRepository extends MongoRepository<AIResponse, String
     Optional<AIResponse> findTopByUserIdOrderByCreatedAtDesc(String userId);
     
     /**
-     * 특정 일기 제목으로 AI 응답 조회
+     * 특정 일기 ID로 AI 응답 조회
      */
-    Optional<AIResponse> findByUserIdAndDiaryTitle(String userId, String diaryTitle);
+    Optional<AIResponse> findByDiaryId(Long diaryId);
     
     /**
      * 특정 사용자의 응답 개수 조회

@@ -9,6 +9,7 @@ import com.authentication.auth.dto.diary.DiaryUpdateRequest;
 import com.authentication.auth.dto.diary.DiaryRequestDto;
 import com.authentication.auth.repository.UserRepository;
 import com.authentication.auth.service.diary.DiaryAnalysisService;
+import com.authentication.auth.service.DiaryService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,6 +33,7 @@ public class DiaryManagementService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
     private final DiaryAnalysisService diaryAnalysisService;
+    private final DiaryService diaryService;
 
         public DiaryResponseDto createDiaryPost(DiaryCreateRequest request, UserDetails userDetails) {
         User user = findUserByUsernameOrEmail(userDetails.getUsername());
@@ -48,13 +50,9 @@ public class DiaryManagementService {
         // 비동기 AI 분석 요청
         try {
             log.info("일기 저장 완료. 비동기 분석을 요청합니다. Diary ID: {}", savedDiary.getId());
-            DiaryRequestDto analysisRequest = new DiaryRequestDto(
-                    savedDiary.getTitle(),
-                    savedDiary.getContent(),
-                    user.getLoginId(),
-                    savedDiary.getDate() != null ? savedDiary.getDate().toString() : null
-            );
-            diaryAnalysisService.requestDiaryAnalysis(analysisRequest);
+            // DiaryService를 통해 분석 요청 (더 확실한 방법)
+            diaryService.requestAnalysis(savedDiary.getId(), userDetails.getUsername());
+            log.info("일기 생성 후 분석 요청 완료 - Diary ID: {}", savedDiary.getId());
         } catch (Exception e) {
             log.error("비동기 분석 요청 중 오류 발생: {}", e.getMessage(), e);
             // AI 분석 실패가 일기 생성 자체에 영향을 주지 않도록 예외를 던지지 않음
@@ -73,11 +71,31 @@ public class DiaryManagementService {
             throw new AccessDeniedException("Access denied");
         }
 
+        // 기존 내용과 새로운 내용 비교
+        boolean contentChanged = !diary.getContent().equals(request.getContent()) || 
+                                !diary.getTitle().equals(request.getTitle());
+
         diary.setTitle(request.getTitle());
         diary.setContent(request.getContent());
         diary.setDate(request.getDate());
 
         Diary savedDiary = diaryRepository.save(diary);
+
+        // 내용이 변경된 경우에만 재분석 요청
+        if (contentChanged) {
+            try {
+                log.info("일기 수정 완료. 내용 변경으로 인한 재분석을 요청합니다. Diary ID: {}", savedDiary.getId());
+                // DiaryService를 통해 분석 요청 (더 확실한 방법)
+                diaryService.requestAnalysis(savedDiary.getId(), userDetails.getUsername());
+                log.info("일기 수정 후 재분석 요청 완료 - Diary ID: {}", savedDiary.getId());
+            } catch (Exception e) {
+                log.error("수정된 일기 재분석 요청 중 오류 발생: {}", e.getMessage(), e);
+                // AI 분석 실패가 일기 수정 자체에 영향을 주지 않도록 예외를 던지지 않음
+            }
+        } else {
+            log.info("일기 수정 완료. 내용 변경이 없어 재분석을 건너뜁니다. Diary ID: {}", savedDiary.getId());
+        }
+
         return convertToResponseDto(savedDiary);
     }
 
@@ -135,7 +153,7 @@ public class DiaryManagementService {
                 .id(diary.getId())
                 .title(diary.getTitle())
                 .content(diary.getContent())
-                .userName(diary.getUser().getUserName())
+                .userName(diary.getUser().getNickname())
                 .createdAt(diary.getCreatedAt())
                 .updatedAt(diary.getUpdatedAt())
                 .build();

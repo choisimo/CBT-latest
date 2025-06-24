@@ -95,7 +95,13 @@ public class SecurityConfig {
             "/user/resetPassword", "/user/verifyResetPassword", "/user/verifyEmail", 
             "/user/resendVerificationEmail",
             // Other public paths from publicAPI.java
-            "/public", "/errorPage", "/notExist", "/unauthorized"
+            "/public", "/errorPage", "/notExist", "/unauthorized",
+            // Debug endpoints (TODO: Remove in production)
+            "/api/diaries/*/analysis/debug-trigger",
+            // SSE endpoint for real-time updates
+            "/subscribe",
+            // Email verification endpoints (explicitly added for clarity)
+            "/api/public/emailCode", "/api/public/emailCheck"
             // Ensure these paths are distinct and correctly represent public resources.
             // Some like /unauthorized might be error views rather than pre-auth accessible endpoints.
     };

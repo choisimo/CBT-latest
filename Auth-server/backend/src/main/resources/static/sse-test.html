@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실시간 일기 분석 상태 모니터링</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-box {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+
+    .status-pending {
+      border-left: 4px solid #ffc107;
+    }
+
+    .status-processing {
+      border-left: 4px solid #007bff;
+    }
+
+    .status-completed {
+      border-left: 4px solid #28a745;
+    }
+
+    .status-failed {
+      border-left: 4px solid #dc3545;
+    }
+
+    .event-log {
+      background-color: #000;
+      color: #0f0;
+      padding: 10px;
+      border-radius: 5px;
+      height: 200px;
+      overflow-y: scroll;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .control-panel {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #e9ecef;
+      border-radius: 5px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    input[type="number"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 80px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🔄 실시간 일기 분석 상태 모니터링</h1>
+
+    <div class="control-panel">
+      <h3>제어 패널</h3>
+      <label for="diaryId">일기 ID:</label>
+      <input type="number" id="diaryId" value="17" min="1">
+
+      <button onclick="triggerAnalysis()">분석 시작</button>
+      <button onclick="connectSSE()">SSE 연결</button>
+      <button onclick="disconnectSSE()">SSE 연결 해제</button>
+      <button onclick="clearLog()">로그 지우기</button>
+    </div>
+
+    <div class="status-box" id="connectionStatus">
+      <strong>연결 상태:</strong> <span id="sseStatus">연결 안됨</span>
+    </div>
+
+    <div class="status-box" id="analysisStatus">
+      <strong>분석 상태:</strong> <span id="currentStatus">대기 중</span>
+    </div>
+
+    <div class="status-box">
+      <strong>이벤트 로그:</strong>
+      <div class="event-log" id="eventLog"></div>
+    </div>
+
+    <div class="status-box">
+      <strong>최근 분석 결과:</strong>
+      <div id="latestResult">결과 없음</div>
+    </div>
+  </div>
+
+  <script>
+    let eventSource = null;
+
+    function addLog(message) {
+      const log = document.getElementById('eventLog');
+      const timestamp = new Date().toLocaleTimeString();
+      log.innerHTML += `[${timestamp}] ${message}\n`;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function updateStatus(status, className = '') {
+      const statusElement = document.getElementById('currentStatus');
+      statusElement.textContent = status;
+
+      const statusBox = document.getElementById('analysisStatus');
+      statusBox.className = 'status-box ' + className;
+    }
+
+    function connectSSE() {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      // 실제 환경에서는 JWT 토큰을 헤더에 포함해야 합니다
+      eventSource = new EventSource('/subscribe');
+
+      eventSource.onopen = function (event) {
+        document.getElementById('sseStatus').textContent = '연결됨';
+        addLog('✅ SSE 연결 성공');
+      };
+
+      eventSource.onmessage = function (event) {
+        addLog(`📩 메시지: ${event.data}`);
+      };
+
+      // 분석 상태 업데이트
+      eventSource.addEventListener('analysis_status', function (event) {
+        const data = JSON.parse(event.data);
+        const status = data.status;
+
+        addLog(`🔄 분석 상태 변경: ${status}`);
+
+        switch (status) {
+          case 'PENDING':
+            updateStatus('대기 중', 'status-pending');
+            break;
+          case 'PROCESSING':
+            updateStatus('분석 중', 'status-processing');
+            break;
+          case 'COMPLETED':
+            updateStatus('완료', 'status-completed');
+            break;
+          case 'FAILED':
+            updateStatus('실패', 'status-failed');
+            break;
+        }
+      });
+
+      // 분석 완료
+      eventSource.addEventListener('analysis_complete', function (event) {
+        const data = JSON.parse(event.data);
+        addLog('🎉 분석 완료!');
+        updateStatus('완료', 'status-completed');
+
+        document.getElementById('latestResult').innerHTML = `
+                    <strong>감정:</strong> ${data.emotions ? data.emotions[0]?.category : 'N/A'}<br>
+                    <strong>코칭:</strong> ${data.coaching || 'N/A'}<br>
+                    <strong>완료 시간:</strong> ${new Date(data.updatedAt).toLocaleString()}
+                `;
+      });
+
+      // 분석 실패
+      eventSource.addEventListener('analysis_failed', function (event) {
+        const data = JSON.parse(event.data);
+        addLog(`❌ 분석 실패: ${data.errorMessage}`);
+        updateStatus('실패', 'status-failed');
+      });
+
+      // 분석 오류
+      eventSource.addEventListener('analysis_error', function (event) {
+        const data = JSON.parse(event.data);
+        addLog(`⚠️ 분석 오류: ${data.error}`);
+        updateStatus('오류', 'status-failed');
+      });
+
+      eventSource.onerror = function (event) {
+        document.getElementById('sseStatus').textContent = '연결 오류';
+        addLog('❌ SSE 연결 오류');
+      };
+    }
+
+    function disconnectSSE() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+        document.getElementById('sseStatus').textContent = '연결 해제됨';
+        addLog('🔌 SSE 연결 해제');
+      }
+    }
+
+    function triggerAnalysis() {
+      const diaryId = document.getElementById('diaryId').value;
+
+      fetch(`/api/diaries/${diaryId}/analysis/debug-trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.text())
+        .then(data => {
+          addLog(`🚀 분석 트리거 성공: ${data}`);
+          updateStatus('시작됨', 'status-pending');
+        })
+        .catch(error => {
+          addLog(`❌ 분석 트리거 실패: ${error}`);
+        });
+    }
+
+    function clearLog() {
+      document.getElementById('eventLog').innerHTML = '';
+    }
+
+    // 페이지 로드 시 자동 연결
+    window.onload = function () {
+      addLog('🌟 페이지 로드 완료');
+    };
+
+    // 페이지 언로드 시 연결 해제
+    window.onbeforeunload = function () {
+      disconnectSSE();
+    };
+  </script>
+</body>
+
+</html>

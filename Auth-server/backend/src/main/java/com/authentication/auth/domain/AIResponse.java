@@ -21,6 +21,9 @@ public class AIResponse {
     
     @Id
     private String id;
+
+    @Field("diary_id")
+    private Long diaryId;
     
     @Field("user_id")
     private String userId;
@@ -45,6 +48,20 @@ public class AIResponse {
     
     @Field("updated_at")
     private LocalDateTime updatedAt;
+    
+    @Field("status")
+    @Builder.Default
+    private AnalysisStatus status = AnalysisStatus.PENDING;
+    
+    @Field("error_message")
+    private String errorMessage;
+    
+    public enum AnalysisStatus {
+        PENDING,     // 대기중
+        PROCESSING,  // 분석중  
+        COMPLETED,   // 완료
+        FAILED       // 실패
+    }
     
     @Data
     @NoArgsConstructor

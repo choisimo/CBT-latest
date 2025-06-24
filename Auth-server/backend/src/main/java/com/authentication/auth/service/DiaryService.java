@@ -21,5 +21,5 @@ public interface DiaryService {
     void deleteAIResponse(String id);
 
     void requestAnalysis(Long diaryId, String userId);
-    AIResponseDto analyzeAndSaveDiary(DiaryRequestDto request);
+
 }

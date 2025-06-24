@@ -2,7 +2,6 @@ package com.authentication.auth.controller;
 
 
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +25,8 @@ import com.authentication.auth.service.file.FileService;
 import com.authentication.auth.service.redis.RedisService;
 import com.authentication.auth.service.smtp.EmailService;
 import com.authentication.auth.service.users.UserService;
+import com.authentication.auth.dto.EmailRequestDto;
+import com.authentication.auth.dto.EmailVerificationRequestDto;
 
 import java.util.*;
 import jakarta.validation.Valid;
@@ -116,6 +117,25 @@ public class UsersController {
         boolean isDuplicate = userService.checkLoginIdIsDuplicate(loginId);
         String message = isDuplicate ? "이미 사용 중인 로그인 ID입니다." : "사용 가능한 로그인 ID입니다.";
         return ResponseEntity.ok(ApiResponse.success(isDuplicate, message));
+    }
+
+    // 이메일 인증 코드 발송 API
+    @PostMapping("/public/emailCode")
+    public ResponseEntity<ApiResponse<Void>> sendEmailCode(@RequestBody EmailRequestDto requestDto) {
+        // TODO: 이미 가입된 이메일인지 확인하는 로직 추가
+        emailService.sendVerificationCode(requestDto.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(null, "인증 코드가 성공적으로 발송되었습니다."));
+    }
+
+    // 이메일 인증 코드 확인 API
+    @PostMapping("/public/emailCheck")
+    public ResponseEntity<ApiResponse<Boolean>> verifyEmailCode(@Valid @RequestBody EmailVerificationRequestDto requestDto) {
+        log.info("/public/emailCheck - email: {}", requestDto.getEmail());
+        
+        boolean isVerified = emailService.verifyCode(requestDto.getEmail(), requestDto.getCode());
+        String message = isVerified ? "이메일 인증이 완료되었습니다." : "인증 코드가 일치하지 않습니다.";
+        
+        return ResponseEntity.ok(ApiResponse.success(isVerified, message));
     }
 
     

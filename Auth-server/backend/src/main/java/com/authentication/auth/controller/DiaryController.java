@@ -1,7 +1,7 @@
 package com.authentication.auth.controller;
 
 import com.authentication.auth.dto.AIResponseDto;
-import com.authentication.auth.dto.DiaryRequestDto;
+import com.authentication.auth.dto.diary.DiaryRequestDto;
 import com.authentication.auth.dto.diary.DiaryCreateRequest;
 import com.authentication.auth.dto.diary.DiaryUpdateRequest;
 import com.authentication.auth.diary.dto.DiaryResponseDto;
@@ -93,23 +93,107 @@ public class DiaryController {
     }
 
     /**
-     * 일기 분석 요청 (CREATE/READ)
+     * 일기 분석 조회 (GET) - 분석 결과만 조회
      */
-    @PostMapping("/{diaryId}/analysis")
-    public ResponseEntity<AIResponseDto> getDiaryAnalysis(@PathVariable Long diaryId) {
-        log.info("일기 분석 요청 - diaryId: {}", diaryId);
+    @GetMapping("/{diaryId}/analysis")
+    public ResponseEntity<?> getAnalysisResult(@PathVariable Long diaryId) {
+        log.info("일기 분석 결과 조회 - diaryId: {}", diaryId);
         AIResponseDto response = diaryService.getAnalysisByDiaryId(diaryId);
+        if (response == null) {
+            return ResponseEntity.ok(java.util.Collections.emptyMap());
+        }
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 일기 분석 (CREATE)
+     * 일기 분석 요청 또는 조회 (POST) - 분석 요청 또는 기존 결과 반환
      */
-    @PostMapping("/analyze")
-    public ResponseEntity<AIResponseDto> analyzeDiary(@Valid @RequestBody DiaryRequestDto request) {
-        log.info("일기 분석 요청 - 사용자: {}, 제목: {}", request.getUserId(), request.getTitle());
-        AIResponseDto response = diaryService.analyzeAndSaveDiary(request);
-        return ResponseEntity.ok(response);
+    @PostMapping("/{diaryId}/analysis")
+    public ResponseEntity<?> requestOrGetDiaryAnalysis(
+            @PathVariable Long diaryId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("일기 분석 요청/조회 - diaryId: {}, 사용자: {}", diaryId, userDetails != null ? userDetails.getUsername() : "anonymous");
+        
+        try {
+            // 먼저 기존 분석 결과가 있는지 확인
+            AIResponseDto existingResponse = diaryService.getAnalysisByDiaryId(diaryId);
+            
+            if (existingResponse != null && "COMPLETED".equals(existingResponse.getStatus())) {
+                // 완료된 분석 결과가 있으면 반환
+                log.info("기존 완료된 분석 결과 반환 - diaryId: {}", diaryId);
+                return ResponseEntity.ok(existingResponse);
+            } else {
+                // 분석 결과가 없거나 완료되지 않았으면 새로 분석 요청
+                log.info("새로운 분석 요청 시작 - diaryId: {}", diaryId);
+                String username = userDetails != null ? userDetails.getUsername() : "anonymous";
+                diaryService.requestAnalysis(diaryId, username);
+                
+                // 즉시 현재 상태 반환 (PENDING 또는 PROCESSING)
+                AIResponseDto currentResponse = diaryService.getAnalysisByDiaryId(diaryId);
+                if (currentResponse != null) {
+                    return ResponseEntity.ok(currentResponse);
+                } else {
+                    return ResponseEntity.ok(java.util.Map.of(
+                        "status", "PENDING",
+                        "message", "분석이 시작되었습니다. 잠시 후 결과를 확인해주세요."
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            log.error("일기 분석 요청 중 오류 발생 - diaryId: {}, 오류: {}", diaryId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of(
+                        "status", "FAILED",
+                        "message", "분석 요청 중 오류가 발생했습니다: " + e.getMessage()
+                    ));
+        }
+    }
+
+    /**
+     * 일기 분석 수동 트리거 (FORCE ANALYSIS)
+     * 기존 분석 결과가 없거나 재분석이 필요한 경우 사용
+     */
+    @PostMapping("/{diaryId}/analysis/trigger")
+    public ResponseEntity<String> triggerDiaryAnalysis(
+            @PathVariable Long diaryId, 
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("일기 분석 수동 트리거 요청 - diaryId: {}, 사용자: {}", diaryId, userDetails.getUsername());
+        
+        try {
+            // 현재 사용자의 일기인지 확인 후 분석 요청
+            DiaryResponseDto diary = diaryManagementService.findDiaryById(diaryId);
+            diaryService.requestAnalysis(diaryId, userDetails.getUsername());
+            
+            log.info("일기 분석이 백그라운드에서 시작되었습니다 - diaryId: {}", diaryId);
+            return ResponseEntity.ok("분석이 시작되었습니다. 잠시 후 결과를 확인해주세요.");
+            
+        } catch (Exception e) {
+            log.error("일기 분석 트리거 중 오류 발생 - diaryId: {}, 오류: {}", diaryId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("분석 요청 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 개발/디버깅용 임시 엔드포인트 - 인증 없이 분석 트리거
+     * TODO: 프로덕션에서는 제거해야 함
+     */
+    @PostMapping("/{diaryId}/analysis/debug-trigger")
+    public ResponseEntity<String> debugTriggerDiaryAnalysis(@PathVariable Long diaryId) {
+        log.info("디버그 일기 분석 트리거 요청 - diaryId: {}", diaryId);
+        
+        try {
+            // 인증 없이 바로 분석 요청 (디버깅용)
+            diaryService.requestAnalysis(diaryId, "debug-user");
+            
+            log.info("디버그 일기 분석이 백그라운드에서 시작되었습니다 - diaryId: {}", diaryId);
+            return ResponseEntity.ok("디버그 분석이 시작되었습니다. 잠시 후 결과를 확인해주세요.");
+            
+        } catch (Exception e) {
+            log.error("디버그 일기 분석 트리거 중 오류 발생 - diaryId: {}, 오류: {}", diaryId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("디버그 분석 요청 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
     /**
