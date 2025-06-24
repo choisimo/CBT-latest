@@ -1,4 +1,4 @@
-// src/screens/AnalyzeScreen.tsx
+// src/screens/main/AnalyzeScreen.tsx
 
 import React, { useState, useEffect, useContext } from 'react';
 import {
@@ -7,122 +7,167 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/AppStack';
 import { AuthContext } from '../../context/AuthContext';
 import { BASIC_URL } from '../../constants/api';
+import { createSSEService } from '../../utils/sseService';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Analyze'>;
 
-// API 응답 타입 정의
+// Updated API response type to match backend AIResponseDto
 interface AnalysisResult {
-  id: number;
-  emotionDetection: {
-    joy: number;
-    sadness: number;
-    surprise: number;
-    calm: number;
-  };
-  emotionSummary: string;
-  automaticThought: string;
-  promptForChange: string;
-  alternativeThought: string;
-  status: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
-  confidence: number;
-  analyzedAt: string; // ISO 8601, 예: "2024-01-15T10:35:00Z"
+  id: string;
+  diaryId: number;
+  status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  emotions?: { category: string; intensity?: number }[];
+  coaching?: string;
+  summary?: string;
+  errorMessage?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function AnalyzeScreen({ route }: Props) {
   const { diaryId } = route.params;
-  const { fetchWithAuth, user } = useContext(AuthContext);
+  const { fetchWithAuth, userToken } = useContext(AuthContext);
 
-  // 로딩/에러 상태
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-
-  // “분석 진행 중” 상태일 경우
-  const [inProgress, setInProgress] = useState<{
-    message: string;
-    progress: number;
-    estimatedRemaining: string;
-  } | null>(null);
-
-  // 실제 분석 결과가 내려왔을 때
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string>('대기 중...');
+
+  // 폴백 폴링 함수 정의
+  const startFallbackPolling = async () => {
+    console.log('폴백 폴링 시작');
+
+    const pollForAnalysis = async () => {
+      try {
+        const response = await fetchWithAuth(`/api/diaries/${diaryId}/analysis`, {
+          method: 'GET',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data && data.status) {
+            switch (data.status) {
+              case 'PENDING':
+                setAnalysisStatus('분석 대기 중...');
+                setTimeout(pollForAnalysis, 2000);
+                break;
+              case 'PROCESSING':
+                setAnalysisStatus('AI가 일기를 분석하고 있습니다...');
+                setTimeout(pollForAnalysis, 2000);
+                break;
+              case 'COMPLETED':
+                setAnalysis(data as AnalysisResult);
+                setAnalysisStatus('분석 완료!');
+                setIsLoading(false);
+                break;
+              case 'FAILED':
+                setError(data.errorMessage || '분석에 실패했습니다.');
+                setIsLoading(false);
+                break;
+            }
+          } else {
+            // 아직 분석이 시작되지 않음
+            setTimeout(pollForAnalysis, 2000);
+          }
+        } else {
+          setError('분석 상태를 확인할 수 없습니다.');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('폴링 오류:', error);
+        setError('분석 상태 확인 중 오류가 발생했습니다.');
+        setIsLoading(false);
+      }
+    };
+
+    pollForAnalysis();
+  };
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadAnalysis = async () => {
-      if (!user) {
-        Alert.alert('로그인이 필요합니다.');
+    // SSE 서비스 생성
+    const sseService = createSSEService(BASIC_URL, () => userToken);
+
+    // 실시간 모니터링 시작
+    sseService.connect({
+      onConnect: () => {
+        console.log('실시간 분석 모니터링 연결됨');
+        setAnalysisStatus('분석 연결됨...');
+      },
+
+      onStatusUpdate: (data) => {
+        if (!isMounted) return;
+
+        console.log('분석 상태 업데이트:', data);
+        switch (data.status) {
+          case 'PENDING':
+            setAnalysisStatus('분석 대기 중...');
+            break;
+          case 'PROCESSING':
+            setAnalysisStatus('AI가 일기를 분석하고 있습니다...');
+            break;
+        }
+      },
+
+      onComplete: (data) => {
+        if (!isMounted) return;
+
+        console.log('분석 완료:', data);
+        setAnalysis(data as AnalysisResult);
+        setAnalysisStatus('분석 완료!');
         setIsLoading(false);
-        return;
+      },
+
+      onFailed: (data) => {
+        if (!isMounted) return;
+
+        console.log('분석 실패:', data);
+        setError(data.errorMessage || '분석에 실패했습니다.');
+        setIsLoading(false);
+      },
+
+      onError: (errorMessage) => {
+        if (!isMounted) return;
+
+        console.error('SSE 오류:', errorMessage);
+        // 실시간 연결 실패 시 폴백으로 폴링 방식 사용
+        startFallbackPolling();
+      },
+
+      onDisconnect: () => {
+        console.log('실시간 분석 모니터링 연결 해제');
       }
+    });
 
-      try {
-        const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaries/${diaryId}/analysis`,
-          { method: 'POST' }
-        );
-
-        if (!res.ok) {
-          // 4xx/5xx 에러 처리
-          const errJson = await res.json();
-          throw new Error(errJson.message || `서버 에러: ${res.status}`);
-        }
-
-        // 성공적으로 JSON을 받으면…
-        const data = await res.json();
-
-        // “분석 진행 중” 응답인지 확인 (message, progress, estimatedRemaining)
-        if (data.message && typeof data.progress === 'number') {
-          if (isMounted) {
-            setInProgress({
-              message: data.message,
-              progress: data.progress,
-              estimatedRemaining: data.estimatedRemaining,
-            });
-          }
-        } else if (data.analysis && typeof data.analysis === 'object') {
-          // “분석 완료” 응답일 때
-          if (isMounted) {
-            setAnalysis(data.analysis as AnalysisResult);
-          }
-        } else {
-          throw new Error('알 수 없는 응답 형식입니다.');
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setError(err.message);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadAnalysis();
+    // 특정 다이어리 모니터링 시작
+    sseService.monitorDiary(Number(diaryId));
 
     return () => {
       isMounted = false;
+      sseService.disconnect();
     };
-  }, [diaryId, fetchWithAuth, user]);
+  }, [diaryId, fetchWithAuth, userToken]);
 
-  // 로딩 중
   if (isLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#4A90E2" />
+        <Text style={styles.progressText}>{analysisStatus}</Text>
+        <Text style={styles.subtext}>
+          잠시만 기다려주세요. 최대 1분 정도 소요될 수 있습니다.
+        </Text>
       </View>
     );
   }
 
-  // 에러가 난 경우
   if (error) {
     return (
       <View style={styles.centered}>
@@ -131,142 +176,85 @@ export default function AnalyzeScreen({ route }: Props) {
     );
   }
 
-  // 분석 진행 중인 경우
-  if (inProgress) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centered}>
-          <Text style={styles.progressText}>
-            {inProgress.message}
-          </Text>
-          <Text style={styles.progressText}>
-            진행률: {inProgress.progress}%
-          </Text>
-          <Text style={styles.subtext}>
-            예상 남은 시간: {inProgress.estimatedRemaining}
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // 최종 분석 결과가 있는 경우
   if (analysis) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* ⚠️ TODO: postId로 제목/내용을 따로 가져오고 싶다면
-              여기서 /api/diaryposts/{postId}를 fetch하여 title/content를 세팅하세요. */}
-          <View style={styles.block}>
-            <Text style={styles.heading}>📘 글 제목</Text>
-            <Text style={styles.text}>{/* 제목을 넣어주세요 */}</Text>
-
-            <Text style={[styles.heading, { marginTop: 20 }]}>📝 글 내용</Text>
-            <Text style={styles.text}>{/* 내용을 넣어주세요 */}</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🎭 감정 분석 결과</Text>
+            <Text style={styles.text}>
+              {analysis.emotions?.map(e => e.category).join(', ') || '감정 정보 없음'}
+            </Text>
           </View>
 
-          {/* 1) 감정 식별 결과 */}
+          {analysis.summary && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>📝 AI 요약</Text>
+              <Text style={styles.text}>{analysis.summary}</Text>
+            </View>
+          )}
+
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🧠 1. 감정 식별하기</Text>
+            <Text style={styles.sectionTitle}>💡 인지 행동 치료 제안</Text>
+            <Text style={styles.text}>
+              {analysis.coaching || '제안 정보 없음'}
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ℹ️ 부가 정보</Text>
             <View style={styles.row}>
-              <Text style={styles.boldText}>기쁨:</Text>
-              <Text style={styles.text}>{analysis.emotionDetection.joy}%</Text>
+              <Text style={styles.boldText}>분석 상태:</Text>
+              <Text style={[styles.text, { color: '#28a745', fontWeight: 'bold' }]}>완료</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.boldText}>슬픔:</Text>
-              <Text style={styles.text}>{analysis.emotionDetection.sadness}%</Text>
+              <Text style={styles.boldText}>분석 완료:</Text>
+              <Text style={styles.text}>
+                {analysis.updatedAt
+                  ? new Date(analysis.updatedAt).toLocaleString()
+                  : analysis.createdAt
+                    ? new Date(analysis.createdAt).toLocaleString()
+                    : '시간 정보 없음'
+                }
+              </Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.boldText}>놀람:</Text>
-              <Text style={styles.text}>{analysis.emotionDetection.surprise}%</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.boldText}>평온:</Text>
-              <Text style={styles.text}>{analysis.emotionDetection.calm}%</Text>
-            </View>
-            <Text style={styles.subtext}>
-              {analysis.emotionSummary}
-            </Text>
-          </View>
-
-          {/* 2) 자동적 사고 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔍 2. 자동적 사고 탐색</Text>
-            <Text style={styles.text}>
-              {analysis.automaticThought}
-            </Text>
-          </View>
-
-          {/* 3) 사고 교정 프롬프트 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💡 3. 사고 교정 프롬프트</Text>
-            <Text style={styles.text}>
-              {analysis.promptForChange}
-            </Text>
-          </View>
-
-          {/* 4) 대안적 사고 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🌱 4. 대안적 사고 정리</Text>
-            <Text style={styles.text}>
-              {analysis.alternativeThought}
-            </Text>
-          </View>
-
-          {/* 부가 정보 (상태, 확신도, 분석 시각 등) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔖 부가 정보</Text>
-            <Text style={styles.text}>
-              상태: {analysis.status} {'\n'}
-              확신도: {(analysis.confidence * 100).toFixed(1)}% {'\n'}
-              분석 완료 시각: {new Date(analysis.analyzedAt).toLocaleString()}
-            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // 여기까지 오면, 로딩/에러/진행 중/결과 네 가지 경우 모두 처리되었으므로
-  // 그 외 케이스는 딱히 없다고 간주할 수 있습니다.
   return null;
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f9f9f9' },
   scrollContainer: { padding: 20 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorText: { color: '#D32F2F', fontSize: 16, textAlign: 'center' },
-  progressText: { fontSize: 18, marginBottom: 8, color: '#333' },
-  subtext: { fontSize: 14, color: '#666' },
-
-  block: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    elevation: 1,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  text: { fontSize: 16, lineHeight: 24, marginBottom: 8, color: '#333' },
-
+  progressText: { fontSize: 18, marginBottom: 12, color: '#333', textAlign: 'center' },
+  subtext: { fontSize: 14, color: '#666', textAlign: 'center' },
   section: {
     backgroundColor: '#ffffff',
-    padding: 15,
+    padding: 20,
     borderRadius: 10,
-    marginTop: 15,
+    marginBottom: 20,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
     color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 8,
   },
+  text: { fontSize: 16, lineHeight: 24, color: '#555' },
   boldText: {
     fontSize: 16,
     fontWeight: '600',

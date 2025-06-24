@@ -38,9 +38,10 @@ except Exception as e:
 class AnalysisRequest(BaseModel):
     text: str
 
-# 백엔드 호환성을 위한 응답 모델
-class BackendResponse(BaseModel):
-    response: str # 내부에 JSON 문자열이 포함됨
+# AI 분석 결과를 위한 응답 모델
+class AIAnalysisResponse(BaseModel):
+    emotion: str
+    solution: str
 
 @app.on_event("startup")
 async def startup_event():
@@ -55,7 +56,7 @@ async def startup_event():
     else:
         logger.info("OPENAI_API_KEY가 성공적으로 로드되었습니다.")
 
-@app.post("/diary/analyze", response_model=BackendResponse)
+@app.post("/diary/analyze", response_model=AIAnalysisResponse)
 async def analyze_text(request: AnalysisRequest):
     """
     입력된 텍스트를 분석하여 감정과 해결책을 반환합니다.
@@ -74,19 +75,16 @@ async def analyze_text(request: AnalysisRequest):
     try:
         # 1. 감정 분석
         emotion_prompt = f"다음 문장에서 드러나는 주요 감정 한 가지를 '기쁨', '슬픔', '분노', '불안', '놀람', '평온' 중 하나로만 답해줘. 문장: '{request.text}'"
-        emotion = openai_service.chat(prompt=emotion_prompt, max_tokens=20).strip()
+        emotion = openai_service.chat(message=emotion_prompt, max_tokens=20).strip()
         logger.info(f"감정 분석 결과: {emotion}")
 
         # 2. 해결책 제시
         solution_prompt = f"'{request.text}'라는 상황을 겪는 사람에게 인지행동치료(CBT) 관점에서 조언 한 문장을 작성해줘."
-        solution = openai_service.chat(prompt=solution_prompt, max_tokens=200).strip()
+        solution = openai_service.chat(message=solution_prompt, max_tokens=200).strip()
         logger.info(f"해결책 제시 결과: {solution[:50]}...")
 
-                # 백엔드가 기대하는 형식으로 응답을 구성합니다.
-        # emotion과 solution을 포함하는 딕셔너리를 JSON 문자열로 변환하여 'response' 필드에 담습니다.
-        import json
-        response_payload = {"emotion": emotion, "solution": solution}
-        return BackendResponse(response=json.dumps(response_payload, ensure_ascii=False))
+                # emotion과 solution을 직접 포함하는 응답을 반환합니다.
+        return AIAnalysisResponse(emotion=emotion, solution=solution)
 
     except Exception as e:
         logger.error(f"API 처리 중 오류 발생: {e}", exc_info=True)

@@ -1,5 +1,3 @@
-// src/screens/PostDetailScreen.tsx
-
 import React, { useState, useContext, useCallback } from 'react';
 import {
   View,
@@ -76,15 +74,12 @@ export default function ViewScreen({ route, navigation }: Props) {
     }, [diaryId, fetchWithAuth, user]),
   );
 
-  // “수정하기” 버튼을 눌렀을 때: Write 화면으로 이동
+  // "수정하기" 버튼을 눌렀을 때: Write 화면으로 이동
   const handleEdit = () => {
     navigation.navigate('Write', { diaryId });
   };
 
-  // “AI 분석 보러가기” 또는 “분석하기” 버튼을 눌렀을 때: Analyze 화면으로 이동
-// … (이전 부분 그대로) …
-
-// “AI 분석 보러가기” 또는 “분석하기” 버튼을 눌렀을 때: Analyze 화면으로 이동
+  // "AI 분석 보러가기" 또는 "분석하기" 버튼을 눌렀을 때: Analyze 화면으로 이동
   const handleAnalyze = async () => {
     if (!post) return;
 
@@ -117,7 +112,8 @@ export default function ViewScreen({ route, navigation }: Props) {
     }
   };
 
-    if (isAuthLoading) {
+  // 1) 로딩 중인 상태
+  if (isAuthLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#4A90E2" />
@@ -142,118 +138,174 @@ export default function ViewScreen({ route, navigation }: Props) {
       </View>
     );
   }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* 1) 글 내용(Card) */}
-      <View style={styles.card}>
-        <Text style={styles.postDate}>{post.date}</Text>
-        <Text style={styles.postTitle}>{post.title}</Text>
-        <Text style={styles.postContent}>{post.content}</Text>
+      {/* 헤더 영역 */}
+      <View style={styles.header}>
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateIcon}>📅</Text>
+          <Text style={styles.postDate}>{post.date}</Text>
+        </View>
+        {post.aiResponse && (
+          <View style={styles.aiStatusBadge}>
+            <Text style={styles.aiStatusText}>AI 분석 완료</Text>
+          </View>
+        )}
       </View>
 
-      {/* 2) AI 분석 결과가 있는 경우: “AI 분석 보러가기” 버튼만 노출 */}
+      {/* 글 내용 카드 */}
+      <View style={styles.card}>
+        <Text style={styles.postTitle}>{post.title}</Text>
+        <View style={styles.contentContainer}>
+          <Text style={styles.postContent}>{post.content}</Text>
+        </View>
+      </View>
+
+      {/* 2) AI 분석 결과가 있는 경우: "AI 분석 보러가기" 버튼만 노출 */}
       {post.aiResponse ? (
         <View style={styles.buttonWrapper}>
           <TouchableOpacity
             style={[styles.button, styles.analyzeButton]}
             onPress={handleAnalyze}
           >
-            <Text style={styles.buttonText}>AI 분석 보러가기</Text>
+            <Text style={styles.buttonIcon}>🧠</Text>
+            <Text style={styles.buttonText}>AI 분석 결과 보기</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        /* 3) AI 분석 결과가 없으면: “수정하기” / “분석하기” 버튼 노출 */
+        /* 3) AI 분석 결과가 없으면: "수정하기" / "분석하기" 버튼 노출 */
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.button, styles.editButton]}
             onPress={() => navigation.navigate('Write', { diaryId: post.id })}
           >
+            <Text style={styles.buttonIcon}>✏️</Text>
             <Text style={styles.buttonText}>수정하기</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.button, styles.analyzeButton]}
             onPress={handleAnalyze}
           >
-            <Text style={styles.buttonText}>분석하기</Text>
+            <Text style={styles.buttonIcon}>🧠</Text>
+            <Text style={styles.buttonText}>AI 분석하기</Text>
           </TouchableOpacity>
         </View>
       )}
     </ScrollView>
   );
-
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#f8f9fa',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#f8f9fa',
   },
   errorText: {
     color: '#D32F2F',
     fontSize: 16,
   },
 
+  // 헤더 영역
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  aiStatusBadge: {
+    backgroundColor: '#e8f5e8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#4caf50',
+  },
+  aiStatusText: {
+    fontSize: 12,
+    color: '#2e7d32',
+    fontWeight: '600',
+  },
+
   // 카드(글 내용) 스타일
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    // Android 그림자
-    elevation: 2,
-    // iOS 그림자
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   postDate: {
-    fontSize: 14,
-    color: '#777',
-    marginBottom: 8,
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
   },
   postTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
+    color: '#1a1a1a',
+    marginBottom: 16,
+    lineHeight: 32,
   },
   postContent: {
     fontSize: 16,
-    color: '#444',
-    lineHeight: 24,
+    color: '#333',
+    lineHeight: 26,
+  },
+  contentContainer: {
+    paddingTop: 8,
   },
 
   // 버튼 행 (AI 분석 결과 없을 때)
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   buttonWrapper: {
     alignItems: 'center',
   },
   button: {
     flex: 1,
-    height: 48,
-    borderRadius: 24,
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   editButton: {
     backgroundColor: '#FFD54F', // 노란색 계열
-    marginRight: 8,
   },
   analyzeButton: {
     backgroundColor: '#4A90E2', // 파란색 계열
-    marginLeft: 8,
-    flex: 1,                     // “AI 분석 보러가기” 전용일 땐 width 전체 사용
+  },
+  buttonIcon: {
+    fontSize: 20,
+    marginRight: 8,
   },
   buttonText: {
     color: '#FFFFFF',

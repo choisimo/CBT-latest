@@ -1,6 +1,6 @@
 // src/screens/main/MainScreen.tsx
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStack';
 import { AuthContext } from '../../context/AuthContext';
 import { BASIC_URL } from '../../constants/api';
@@ -60,6 +61,99 @@ export default function MainScreen({ navigation }: Props) {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+
+  /** 2) 전체 조회 또는 검색어 조회 (page가 바뀔 때마다) */
+  const loadAllOrSearch = useCallback(async (page: number) => {
+    if (!user) return;
+    try {
+      const payload: Record<string, any> = {
+        "q": searchText,
+        "page": page,
+        "size": 10,
+        "sort": "createdAt,desc",
+      };
+      const qs = toQueryString(payload);
+      const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
+      const pageData = await res.json();
+      if (pageData && Array.isArray(pageData.content)) {
+        setFilteredPosts(pageData.content);
+        setTotalCount(pageData.totalElements || 0);
+      } else {
+        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
+        console.error("Unexpected API response structure:", pageData);
+        setFilteredPosts([]);
+        setTotalCount(0);
+      }
+    } catch (e: any) {
+      Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
+    }
+  }, [user, searchText, fetchWithAuth]);
+
+  /** 3) 날짜 선택 시: 해당 날짜 일기만 조회 */
+  const loadByDate = useCallback(async (date: string, page: number) => {
+    if (!user) return;
+    try {
+      const payload: Record<string, any> = {
+        date,
+        "page": page,
+        "size": 10,
+        "sort": "createdAt,desc",
+      };
+      const qs = toQueryString(payload);
+      const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
+      const pageData = await res.json();
+      if (pageData && Array.isArray(pageData.content)) {
+        setFilteredPosts(pageData.content);
+        setTotalCount(pageData.totalElements || 0);
+      } else {
+        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
+        console.error("Unexpected API response structure:", pageData);
+        setFilteredPosts([]);
+        setTotalCount(0);
+      }
+    } catch (e: any) {
+      Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
+    }
+  }, [user, fetchWithAuth]);
+
+  /** 데이터 새로고침 함수 */
+  const refreshData = useCallback(async () => {
+    if (isAuthLoading || isBootstrapping || !user) {
+      return;
+    }
+
+    try {
+      // 1. 달력 날짜 조회
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const calendarQs = toQueryString({ month: `${year}-${month}` });
+      const calendarRes = await fetchWithAuth(`${BASIC_URL}/api/diaries${calendarQs}`);
+      const calendarData = await calendarRes.json();
+      if (calendarData && Array.isArray(calendarData.dates)) {
+        setAllDates(calendarData.dates);
+      } else {
+        console.warn('달력 조회 실패: dates 배열이 없습니다', calendarData);
+        setAllDates([]);
+      }
+
+      // 2. 현재 페이지의 일기 목록 새로고침
+      if (selectedDate) {
+        await loadByDate(selectedDate, currentPage);
+      } else {
+        await loadAllOrSearch(currentPage);
+      }
+    } catch (e: any) {
+      console.warn('데이터 새로고침 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
+    }
+  }, [isAuthLoading, isBootstrapping, user, fetchWithAuth, selectedDate, currentPage, loadByDate, loadAllOrSearch]);
+
+  /** 화면 포커스 시 데이터 새로고침 */
+  useFocusEffect(
+    useCallback(() => {
+      refreshData();
+    }, [refreshData])
+  );
 
   /** 1) 앱 로드/로그인 시 초기 데이터 로드 */
   useEffect(() => {
@@ -114,66 +208,12 @@ export default function MainScreen({ navigation }: Props) {
     loadInitialData();
   }, [user, isAuthLoading, isBootstrapping, fetchWithAuth]);
 
-  /** 2) 전체 조회 또는 검색어 조회 (page가 바뀔 때마다) */
-  const loadAllOrSearch = async (page: number) => {
-    if (!user) return;
-    try {
-      const payload: Record<string, any> = {
-        "q": searchText,
-        "page": page,
-        "size": 10,
-        "sort": "createdAt,desc",
-      };
-      const qs = toQueryString(payload);
-      const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
-      const pageData = await res.json();
-      if (pageData && Array.isArray(pageData.content)) {
-        setFilteredPosts(pageData.content);
-        setTotalCount(pageData.totalElements || 0);
-      } else {
-        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
-        console.error("Unexpected API response structure:", pageData);
-        setFilteredPosts([]);
-        setTotalCount(0);
-      }
-    } catch (e: any) {
-      Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
-    }
-  };
-
-  /** 3) 날짜 선택 시: 해당 날짜 일기만 조회 */
-  const loadByDate = async (date: string, page: number) => {
-    if (!user) return;
-    try {
-      const payload: Record<string, any> = {
-        date,
-        "page": page,
-        "size": 10,
-        "sort": "createdAt,desc",
-      };
-      const qs = toQueryString(payload);
-      const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
-      const pageData = await res.json();
-      if (pageData && Array.isArray(pageData.content)) {
-        setFilteredPosts(pageData.content);
-        setTotalCount(pageData.totalElements || 0);
-      } else {
-        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
-        console.error("Unexpected API response structure:", pageData);
-        setFilteredPosts([]);
-        setTotalCount(0);
-      }
-    } catch (e: any) {
-      Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
-    }
-  };
-
   /** 초기 로드: 전체(첫 페이지) */
   useEffect(() => {
     setSelectedDate(null);
     setCurrentPage(0);
     loadAllOrSearch(0);
-  }, [user]);
+  }, [user, loadAllOrSearch]);
 
   /** 페이지 변경 시 로직: 날짜 선택 모드 vs 검색/전체 모드 분기 */
   const goToPage = (page: number) => {
@@ -216,14 +256,27 @@ export default function MainScreen({ navigation }: Props) {
   const hasPrev = currentPage > 0;
   const hasNext = currentPage < totalPages - 1;
 
-  /** FlatList 아이템 렌더러 */
+  /** FlatList 아이템 렌더러 - 개선된 디자인 */
   const renderPostItem = ({ item }: { item: Post }) => (
     <TouchableOpacity
       style={styles.postItem}
       onPress={() => navigation.navigate('View', { diaryId: item.id })}
+      activeOpacity={0.7}
     >
-      <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>{item.title}</Text>
-      <Text style={{ color: '#777' }}>{item.date}</Text>
+      <View style={styles.postItemHeader}>
+        <View style={styles.postItemIcon}>
+          <Text style={styles.postItemIconText}>📝</Text>
+        </View>
+        <View style={styles.postItemContent}>
+          <Text style={styles.postItemTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.postItemDate}>{item.date}</Text>
+        </View>
+        <View style={styles.postItemArrow}>
+          <Text style={styles.postItemArrowText}>›</Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -347,10 +400,57 @@ const styles = StyleSheet.create({
   postItem: {
     padding: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  postItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  postItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  postItemIconText: {
+    fontSize: 18,
+  },
+  postItemContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  postItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  postItemDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  postItemArrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+    height: 24,
+  },
+  postItemArrowText: {
+    fontSize: 20,
+    color: '#4a90e2',
+    fontWeight: '300',
   },
   calendarContainer: {
     marginBottom: 16,

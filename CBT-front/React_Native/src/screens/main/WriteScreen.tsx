@@ -71,8 +71,8 @@ export default function WriteScreen({ route, navigation }: Props) {
 
         // 1) date 문자열을 Date 객체로 변환
         if (data.date) {
-            const [y, m, d] = data.date.split('-').map((v: string) => parseInt(v, 10));
-            setDate(new Date(y, m - 1, d));
+          const [y, m, d] = data.date.split('-').map((v: string) => parseInt(v, 10));
+          setDate(new Date(y, m - 1, d));
         }
 
         // 2) 나머지 상태 채우기
@@ -155,8 +155,10 @@ export default function WriteScreen({ route, navigation }: Props) {
           throw new Error(errJson.message || '서버 에러가 발생했습니다.');
         }
 
+        const updatedPost = await res.json();
         Alert.alert('성공', '일기가 수정되었습니다.');
-        navigation.goBack();
+        // 수정 후에도 AnalyzeScreen으로 이동하여 최신 분석 결과 확인
+        navigation.navigate('Analyze', { diaryId: updatedPost.id || diaryId });
 
       } else {
         // “새 글 작성 모드”일 때: POST 요청

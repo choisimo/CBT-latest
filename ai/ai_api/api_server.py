@@ -58,8 +58,9 @@ class ChatResponse(BaseModel):
     timestamp: str
 
 class DiaryAnalysisRequest(BaseModel):
-    title: str
-    content: str
+    text: str  # 백엔드에서 보내는 필드명에 맞춤
+    title: Optional[str] = None
+    content: Optional[str] = None
     userId: Optional[str] = None
 
 class DiaryAnalysisResponse(BaseModel):
@@ -114,33 +115,20 @@ async def health_check():
 async def analyze_diary(request: DiaryAnalysisRequest):
     """일기 분석 API - 감정 분석 및 코칭 제공"""
     try:
-        logger.info(f"일기 분석 요청 - 제목: {request.title}")
+        logger.info(f"일기 분석 요청 - 텍스트 길이: {len(request.text)}")
         
-        # 일기 내용을 JSON 형태로 구성
-        diary_content = {
-            "title": request.title,
-            "content": request.content
-        }
-        
-        diary_message = json.dumps(diary_content, ensure_ascii=False)
-        
-        # 대화 기록 준비
-        messages = [
-            {"role": "system", "content": DIARY_EMOTION_ANALYSIS_PROMPT},
-            {"role": "user", "content": diary_message}
-        ]
-        
-        # OpenAI API 호출
-        response = openai_service.chat_with_history(
-            messages=messages,
+        # OpenAI API 호출 (단순한 chat 메서드 사용)
+        response = openai_service.chat(
+            message=request.text,
+            system_prompt=DIARY_EMOTION_ANALYSIS_PROMPT,
             model="gpt-4",
             temperature=0.8,
             max_tokens=4000
         )
         
         return DiaryAnalysisResponse(
-            response=response["content"],
-            usage=response.get("usage"),
+            response=response,
+            usage=None,
             model="gpt-4",
             timestamp=datetime.now().isoformat()
         )
