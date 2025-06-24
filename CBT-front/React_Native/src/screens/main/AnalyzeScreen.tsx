@@ -66,7 +66,7 @@ export default function AnalyzeScreen({ route }: Props) {
       try {
         const res = await fetchWithAuth(
           `${BASIC_URL}/api/diaries/${diaryId}/analysis`,
-          { method: 'GET' }
+          { method: 'POST' }
         );
 
         if (!res.ok) {

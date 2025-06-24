@@ -25,7 +25,7 @@ import com.authentication.auth.service.users.UserService;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/email")
 public class EmailController implements EmailApi {
 
     private final EmailService emailService;

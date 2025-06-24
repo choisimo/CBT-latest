@@ -41,8 +41,9 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final int accessTokenValidity;
     private final AntPathRequestMatcher authLoginMatcher;
 
-    private static final String SPRING_SECURITY_FORM_USERNAME_KEY = "email";
-    private static final String SPRING_SECURITY_FORM_PASSWORD_KEY = "password";
+    private static final String IDENTIFIER_KEY_EMAIL = "email";
+    private static final String IDENTIFIER_KEY_LOGIN_ID = "loginId";
+    private static final String PASSWORD_KEY = "password";
 
     public AuthenticationFilter(
             AuthenticationManager authenticationManager,
@@ -67,15 +68,25 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        System.out.println("--- [AuthenticationFilter] Matched request. Attempting authentication for: " + request.getRequestURI() + " ---");
+        log.info("--- [AuthenticationFilter] Matched request. Attempting authentication for: {} ---", request.getRequestURI());
 
         try {
             Map<String, String> credentials = objectMapper.readValue(request.getInputStream(), Map.class);
-            String identifier = credentials.getOrDefault(SPRING_SECURITY_FORM_USERNAME_KEY, "");
-            String password = credentials.getOrDefault(SPRING_SECURITY_FORM_PASSWORD_KEY, "");
+
+            String email = credentials.get(IDENTIFIER_KEY_EMAIL);
+            String loginId = credentials.get(IDENTIFIER_KEY_LOGIN_ID);
+            String password = credentials.get(PASSWORD_KEY);
+
+            // loginId가 있으면 loginId를, 없으면 email을 식별자로 사용
+            String identifier = (loginId != null && !loginId.isBlank()) ? loginId : email;
 
             if (!isValidIdentifier(identifier)) {
-                sendErrorResponse(response, ErrorType.AUTHENTICATION_FAILED, "Username or email must be provided.");
+                sendErrorResponse(response, ErrorType.AUTHENTICATION_FAILED, "Identifier(loginId or email) must be provided.");
+                return;
+            }
+
+            if (password == null || password.isBlank()) {
+                sendErrorResponse(response, ErrorType.AUTHENTICATION_FAILED, "Password must be provided.");
                 return;
             }
 

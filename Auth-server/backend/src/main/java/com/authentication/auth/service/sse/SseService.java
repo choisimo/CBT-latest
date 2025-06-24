@@ -46,19 +46,24 @@ public class SseService {
         }
     }
 
-    // 특정 사용자에게 이벤트 전송
-    public void sendEventToUser(String userId, Object data) {
+    // 특정 사용자에게 특정 이름의 이벤트 전송
+    public void sendEventToUser(String userId, String eventName, Object data) {
         List<SseEmitter> emitters = emittersMap.get(userId);
         if (emitters != null) {
             emitters.forEach(emitter -> {
                 try {
-                    emitter.send(SseEmitter.event().name("message").data(data));
+                    emitter.send(SseEmitter.event().name(eventName).data(data));
                 } catch (IOException e) {
                     log.error("Error sending event to userId: {}", userId, e);
                     removeEmitter(userId, emitter);
                 }
             });
         }
+    }
+
+    // 특정 사용자에게 'message' 이름으로 이벤트 전송 (오버로딩)
+    public void sendEventToUser(String userId, Object data) {
+        sendEventToUser(userId, "message", data);
     }
 
     // 모든 사용자에게 이벤트 전송

@@ -1,6 +1,6 @@
 // src/screens/PostDetailScreen.tsx
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/AppStack';
 import { AuthContext } from '../../context/AuthContext';
@@ -33,46 +34,47 @@ export default function ViewScreen({ route, navigation }: Props) {
   const [post, setPost] = useState<PostData | null>(null);
   const [error, setError] = useState<string>('');
 
-  // 백엔드에서 글 정보를 가져오는 함수
-  useEffect(() => {
-    let isMounted = true;
+  // 화면이 포커스될 때마다 최신 글 정보를 가져오기 위해 useFocusEffect 사용
+  useFocusEffect(
+    useCallback(() => {
+      const loadPost = async () => {
+        if (!user) {
+          // 로그인 상태가 아니면 로드하지 않음
+          return;
+        }
 
-    const loadPost = async () => {
-      if (!user) {
-        Alert.alert('로그인이 필요합니다.');
-        return;
-      }
+        // 데이터 로딩 전 이전 상태 초기화
+        setError('');
 
-      try {
-        const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaryposts/${diaryId}`,
-          { method: 'GET' }
-        );
-        if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('해당 글을 찾을 수 없습니다.');
-          } else {
-            const errJson = await res.json();
-            throw new Error(errJson.message || '서버 에러가 발생했습니다.');
+        try {
+          const res = await fetchWithAuth(
+            `${BASIC_URL}/api/diaries/${diaryId}`,
+            { method: 'GET' },
+          );
+          if (!res.ok) {
+            if (res.status === 404) {
+              throw new Error('해당 글을 찾을 수 없습니다.');
+            } else {
+              const errJson = await res.json();
+              throw new Error(errJson.message || '서버 에러가 발생했습니다.');
+            }
           }
-        }
-        const data: PostData = await res.json();
-        if (isMounted) {
-          setPost(data);
-        }
-      } catch (err: any) {
-        if (isMounted) {
+          const data: PostData = await res.json();
+          setPost(data); // 최신 데이터로 상태 업데이트
+        } catch (err: any) {
           setError(err.message);
         }
-      }
-      
-    };
+      };
 
-    loadPost();
-    return () => {
-      isMounted = false;
-    };
-  }, [diaryId, fetchWithAuth, user]);
+      loadPost();
+
+      // 클린업 함수 (optional): 화면을 벗어날 때 특정 작업을 수행할 수 있습니다.
+      return () => {
+        // 예를 들어, 상태를 초기화할 수 있습니다.
+        // setPost(null);
+      };
+    }, [diaryId, fetchWithAuth, user]),
+  );
 
   // “수정하기” 버튼을 눌렀을 때: Write 화면으로 이동
   const handleEdit = () => {

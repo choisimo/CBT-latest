@@ -124,18 +124,19 @@ public enum ErrorType {
     EMAIL_SEND_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."); // Added from old version
 
 
-    private final HttpStatus status;
+    private final HttpStatus httpStatus;
     private final String message;
 
-    ErrorType(HttpStatus status, String message) {
-        this.status = status;
+    ErrorType(HttpStatus httpStatus, String message) {
+        this.httpStatus = httpStatus;
         this.message = message;
     }
 
-    /**
-     * Returns the integer HTTP status code associated with this error type.
-     */
     public int getStatusCode() {
-        return status.value();
+        return this.httpStatus.value();
+    }
+
+    public String getMessage() {
+        return this.message;
     }
 }

@@ -1,227 +1,104 @@
 """
-OpenAI GPT API 메인 실행 파일
-- 통합 메뉴 제공
-- 다양한 모드 선택
-- 환경 설정 확인
+FastAPI 기반의 AI 분석 서버
+- /analyze 엔드포인트를 통해 텍스트 감정 및 해결책 분석
 """
 
 import os
-import sys
 import logging
-from ai.ai_api import OpenAIService
-from ai.ai_cli import (
-    ChatBot, AdvancedChatBot,
-    example_basic_chat, example_streaming_chat, example_custom_prompt,
-    example_different_models, example_temperature_variations,
-    example_conversation_management, example_title_generation,
-    example_code_assistant, run_all_examples
-)
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+from ai_api import OpenAIService
+
+# .env 파일에서 환경 변수 로드
+load_dotenv()
 
 # 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def check_environment():
-    """환경 설정 확인"""
+# FastAPI 앱 인스턴스 생성
+app = FastAPI(
+    title="CBT-Diary AI Analysis Server",
+    description="일기 내용을 분석하여 감정과 해결책을 제공하는 API 서버",
+    version="1.0.0"
+)
+
+# OpenAI 서비스 인스턴스 생성
+# API 키는 환경 변수 'OPENAI_API_KEY'에서 자동으로 로드됩니다.
+try:
+    openai_service = OpenAIService()
+    logger.info("OpenAI 서비스가 성공적으로 초기화되었습니다.")
+except Exception as e:
+    logger.error(f"OpenAI 서비스 초기화 실패: {e}")
+    openai_service = None
+
+# 요청 본문을 위한 Pydantic 모델 정의
+class AnalysisRequest(BaseModel):
+    text: str
+
+# 백엔드 호환성을 위한 응답 모델
+class BackendResponse(BaseModel):
+    response: str # 내부에 JSON 문자열이 포함됨
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 실행되는 이벤트"""
+    if not openai_service:
+        logger.error("OpenAI 서비스가 초기화되지 않아 서버를 시작할 수 없습니다.")
+        # 실제 운영 환경에서는 여기서 서버를 강제 종료할 수도 있습니다.
+        # import sys; sys.exit(1)
     api_key = os.getenv('OPENAI_API_KEY')
-    
     if not api_key:
-        print("⚠️  경고: OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
-        print()
-        print("📋 API 키 설정 방법:")
-        print("  1. OpenAI 플랫폼에서 API 키 발급: https://platform.openai.com/api-keys")
-        print("  2. 환경변수 설정:")
-        print("     • Windows: set OPENAI_API_KEY=your-api-key-here")
-        print("     • Linux/Mac: export OPENAI_API_KEY='your-api-key-here'")
-        print("  3. 또는 .env 파일에 OPENAI_API_KEY=your-api-key-here 추가")
-        print()
-        
-        choice = input("❓ API 키 없이 계속하시겠습니까? (y/N): ").lower()
-        if choice != 'y':
-            print("👋 프로그램을 종료합니다.")
-            sys.exit(0)
-        return False
-    
-    print("✅ OpenAI API 키가 설정되었습니다.")
-    return True
-
-def show_main_menu():
-    """메인 메뉴 표시"""
-    print("🚀 OpenAI GPT API 통합 프로그램")
-    print("=" * 50)
-    print()
-    print("📋 사용 가능한 모드:")
-    print("  1. 🤖 기본 챗봇 - 간단한 대화형 인터페이스")
-    print("  2. 🚀 고급 챗봇 - 설정 변경 가능한 인터페이스")
-    print("  3. 📚 예제 모음 - 다양한 사용 예제 실행")
-    print("  4. ⚙️  환경 설정 확인")
-    print("  5. ❓ 도움말")
-    print("  6. 👋 종료")
-    print()
-
-def run_basic_chatbot():
-    """기본 챗봇 실행"""
-    print("🤖 기본 챗봇 모드를 시작합니다...")
-    try:
-        chatbot = ChatBot()
-        chatbot.start_chat()
-    except Exception as e:
-        print(f"❌ 챗봇 실행 오류: {str(e)}")
-
-def run_advanced_chatbot():
-    """고급 챗봇 실행"""
-    print("🚀 고급 챗봇 모드를 시작합니다...")
-    try:
-        chatbot = AdvancedChatBot()
-        chatbot.start_chat()
-    except Exception as e:
-        print(f"❌ 고급 챗봇 실행 오류: {str(e)}")
-
-def run_examples_menu():
-    """예제 메뉴 실행"""
-    while True:
-        print("\n📚 예제 모음")
-        print("=" * 30)
-        
-        examples_menu = {
-            "1": ("기본 채팅", example_basic_chat),
-            "2": ("스트리밍 채팅", example_streaming_chat),
-            "3": ("커스텀 프롬프트", example_custom_prompt),
-            "4": ("다양한 모델", example_different_models),
-            "5": ("창의성 수준 변화", example_temperature_variations),
-            "6": ("대화 기록 관리", example_conversation_management),
-            "7": ("제목 생성", example_title_generation),
-            "8": ("코드 어시스턴트", example_code_assistant),
-            "9": ("모든 예제 실행", run_all_examples),
-            "0": ("메인 메뉴로 돌아가기", None)
-        }
-        
-        print("실행할 예제를 선택하세요:")
-        for key, (name, _) in examples_menu.items():
-            print(f"  {key}. {name}")
-        
-        try:
-            choice = input("\n선택 (0-9): ").strip()
-            
-            if choice == "0":
-                break
-            elif choice in examples_menu and examples_menu[choice][1]:
-                name, func = examples_menu[choice]
-                print(f"\n▶️ {name} 예제 실행 중...")
-                print("=" * 50)
-                func()
-                input("\n⏸️ 메인 메뉴로 돌아가려면 Enter를 누르세요...")
-            else:
-                print("❌ 올바른 선택지를 입력해주세요.")
-                
-        except Exception as e:
-            print(f"❌ 오류: {str(e)}")
-
-def show_environment_info():
-    """환경 정보 표시"""
-    print("\n⚙️  환경 설정 정보")
-    print("=" * 30)
-    
-    # API 키 확인
-    api_key = os.getenv('OPENAI_API_KEY')
-    if api_key:
-        masked_key = api_key[:8] + "..." + api_key[-4:] if len(api_key) > 12 else "설정됨"
-        print(f"🔑 OpenAI API 키: {masked_key}")
+        logger.warning("OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
     else:
-        print("🔑 OpenAI API 키: ❌ 설정되지 않음")
-    
-    # 패키지 정보
+        logger.info("OPENAI_API_KEY가 성공적으로 로드되었습니다.")
+
+@app.post("/diary/analyze", response_model=BackendResponse)
+async def analyze_text(request: AnalysisRequest):
+    """
+    입력된 텍스트를 분석하여 감정과 해결책을 반환합니다.
+
+    - **request**: 'text' 필드를 포함하는 JSON 객체
+    - **return**: 'emotion'과 'solution' 필드를 포함하는 JSON 객체
+    """
+    if not openai_service:
+        raise HTTPException(status_code=503, detail="AI 서비스를 사용할 수 없습니다. 서버 설정을 확인하세요.")
+
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="분석할 텍스트를 입력해주세요.")
+
+    logger.info(f"분석 요청 수신: {request.text[:50]}...")
+
     try:
-        import openai
-        print(f"📦 OpenAI 패키지 버전: {openai.__version__}")
+        # 1. 감정 분석
+        emotion_prompt = f"다음 문장에서 드러나는 주요 감정 한 가지를 '기쁨', '슬픔', '분노', '불안', '놀람', '평온' 중 하나로만 답해줘. 문장: '{request.text}'"
+        emotion = openai_service.chat(prompt=emotion_prompt, max_tokens=20).strip()
+        logger.info(f"감정 분석 결과: {emotion}")
+
+        # 2. 해결책 제시
+        solution_prompt = f"'{request.text}'라는 상황을 겪는 사람에게 인지행동치료(CBT) 관점에서 조언 한 문장을 작성해줘."
+        solution = openai_service.chat(prompt=solution_prompt, max_tokens=200).strip()
+        logger.info(f"해결책 제시 결과: {solution[:50]}...")
+
+                # 백엔드가 기대하는 형식으로 응답을 구성합니다.
+        # emotion과 solution을 포함하는 딕셔너리를 JSON 문자열로 변환하여 'response' 필드에 담습니다.
+        import json
+        response_payload = {"emotion": emotion, "solution": solution}
+        return BackendResponse(response=json.dumps(response_payload, ensure_ascii=False))
+
     except Exception as e:
-        print(f"📦 OpenAI 패키지: ❌ 설치되지 않음 ({str(e)})")
-    
-    # Python 버전
-    print(f"🐍 Python 버전: {sys.version.split()[0]}")
-    
-    # 작업 디렉토리
-    print(f"📁 현재 디렉토리: {os.getcwd()}")
-    
-    # 테스트 연결
-    if api_key:
-        print("\n🔍 OpenAI API 연결 테스트 중...")
-        try:
-            service = OpenAIService()
-            test_response = service.chat("안녕하세요!", max_tokens=10)
-            print("✅ API 연결 성공!")
-        except Exception as e:
-            print(f"❌ API 연결 실패: {str(e)}")
+        logger.error(f"API 처리 중 오류 발생: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"AI 서버 처리 중 오류 발생: {e}")
 
-def show_help():
-    """도움말 표시"""
-    print("\n❓ 도움말")
-    print("=" * 20)
-    print()
-    print("🎯 이 프로그램의 기능:")
-    print("  • OpenAI GPT API를 활용한 다양한 AI 채팅 기능")
-    print("  • 기본/고급 챗봇 인터페이스")
-    print("  • 다양한 사용 예제와 튜토리얼")
-    print()
-    print("📋 시작하기 전에:")
-    print("  1. OpenAI API 키 필요 (https://platform.openai.com)")
-    print("  2. 환경변수 OPENAI_API_KEY 설정")
-    print("  3. 필요한 패키지 설치: pip install -r requirements.txt")
-    print()
-    print("🚀 추천 사용 순서:")
-    print("  1. 환경 설정 확인 (메뉴 4)")
-    print("  2. 예제 모음에서 기본 채팅 체험 (메뉴 3 → 1)")
-    print("  3. 기본 챗봇으로 대화 시작 (메뉴 1)")
-    print("  4. 고급 기능이 필요하면 고급 챗봇 사용 (메뉴 2)")
-    print()
-    print("💡 팁:")
-    print("  • 스트리밍 기능으로 실시간 응답 확인 가능")
-    print("  • 시스템 프롬프트로 AI 성격 조정 가능")
-    print("  • 대화 기록 저장/불러오기 기능 제공")
-    print("  • 다양한 AI 모델 선택 가능 (GPT-3.5, GPT-4 등)")
+@app.get("/health", summary="서버 상태 확인")
+async def health_check():
+    """서버의 현재 상태를 반환합니다."""
+    if openai_service:
+        return {"status": "ok", "message": "AI 서비스가 정상적으로 실행 중입니다."}
+    else:
+        return {"status": "error", "message": "AI 서비스 초기화 실패. 설정을 확인하세요."}
 
-def main():
-    """메인 함수"""
-    # 환경 확인
-    check_environment()
-    
-    while True:
-        try:
-            show_main_menu()
-            choice = input("선택 (1-6): ").strip()
-            
-            if choice == "1":
-                run_basic_chatbot()
-                
-            elif choice == "2":
-                run_advanced_chatbot()
-                
-            elif choice == "3":
-                run_examples_menu()
-                
-            elif choice == "4":
-                show_environment_info()
-                input("\n📄 메인 메뉴로 돌아가려면 Enter를 누르세요...")
-                
-            elif choice == "5":
-                show_help()
-                input("\n📄 메인 메뉴로 돌아가려면 Enter를 누르세요...")
-                
-            elif choice == "6":
-                print("👋 프로그램을 종료합니다. 감사합니다!")
-                break
-                
-            else:
-                print("❌ 올바른 메뉴 번호를 입력해주세요.")
-                input("⏸️ 계속하려면 Enter를 누르세요...")
-                
-        except KeyboardInterrupt:
-            print("\n\n👋 사용자가 프로그램을 종료했습니다.")
-            break
-        except Exception as e:
-            print(f"❌ 예상치 못한 오류: {str(e)}")
-            logger.error(f"메인 프로그램 오류: {str(e)}", exc_info=True)
-            input("⏸️ 계속하려면 Enter를 누르세요...")
-
-if __name__ == "__main__":
-    main() 
+# uvicorn으로 서버를 실행하려면 터미널에서 다음 명령어를 사용하세요:
+# uvicorn main:app --host 0.0.0.0 --port 8000 --reload

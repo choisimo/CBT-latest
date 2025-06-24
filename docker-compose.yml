@@ -32,7 +32,7 @@ services:
       - "8000:8000"
     environment:
       - OPENAI_API_KEY=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
-      
+
       # 서비스 설정
       - AI_SERVICE_HOST=0.0.0.0
       - AI_SERVICE_PORT=8000
@@ -40,7 +40,7 @@ services:
       - cbt-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -83,7 +83,7 @@ services:
     container_name: redis-db
     ports:
       - "6379:6379"
-    command: ["redis-server", "--save", "60", "1"]
+    command: [ "redis-server", "--save", "60", "1" ]
     volumes:
       - redis_data:/data
     networks:
@@ -129,25 +129,25 @@ services:
       - cbt-network
     restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana:10.4.3
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:39951,http://localhost:3000
-      - GF_CORS_ENABLED=true
-      - GF_CORS_ALLOW_ORIGINS=http://127.0.0.1:39951,http://localhost:3000
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - loki
-      - prometheus
-    networks:
-      - cbt-network
-    restart: unless-stopped
+#  grafana:
+#    image: grafana/grafana:10.4.3
+#    container_name: grafana
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_USER=admin
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=http://127.0.0.1:39951,http://localhost:3000
+#      - GF_CORS_ENABLED=true
+#      - GF_CORS_ALLOW_ORIGINS=http://127.0.0.1:39951,http://localhost:3000
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    depends_on:
+#      - loki
+#      - prometheus
+#    networks:
+#      - cbt-network
+#    restart: unless-stopped
 
 networks:
   cbt-network:

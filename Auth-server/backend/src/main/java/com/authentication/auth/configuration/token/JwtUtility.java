@@ -79,7 +79,7 @@ public class JwtUtility {
                 .compact();
     }
 
-    @SuppressWarnings("unchecked") // Added to suppress unchecked cast warning
+    @SuppressWarnings("unchecked")
     public UsernamePasswordAuthenticationToken getAuthentication(String JWT){
         try {
             Jws<Claims> parsedToken = Jwts.parserBuilder()
@@ -100,14 +100,12 @@ public class JwtUtility {
 
             User userForPrincipal = User.builder()
                     .nickname(userId)
-                    .email("dummy@email.com")
+                    .email(userId)
                     .build();
 
             UserDetails principalDetails = new PrincipalDetails(userForPrincipal);
 
             Collection<GrantedAuthority> authorities = Collections.singletonList(
-                    // Assuming roles list is not empty and we take the first role for SimpleGrantedAuthority
-                    // or that userRole field in User entity is meant to be the primary role string.
                     new SimpleGrantedAuthority("ROLE_" + (roles.isEmpty() ? "USER" : roles.get(0)))
             );
 

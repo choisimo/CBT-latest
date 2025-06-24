@@ -26,11 +26,11 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Write'>;
 export default function WriteScreen({ route, navigation }: Props) {
   const { fetchWithAuth, userToken } = useContext(AuthContext);
 
-  // route.params.postId가 있으면 “수정 모드”, 없으면 “새 글 작성 모드”
-  const postId = (route.params as { postId?: string })?.postId;
+  // route.params.diaryId가 있으면 “수정 모드”, 없으면 “새 글 작성 모드”
+  const { diaryId } = (route.params as { diaryId?: string }) || {};
 
   // 1) 날짜 상태 (Date 객체)와 Picker 보임 여부
-  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
   // 2) 제목과 내용 상태
@@ -42,8 +42,8 @@ export default function WriteScreen({ route, navigation }: Props) {
 
   /** ──────────────── “수정 모드”일 때 기존 글 데이터를 불러오기 ──────────────── */
   useEffect(() => {
-    if (!postId) {
-      // postId가 없으면 새 글 모드이므로 아무것도 안 함
+    if (!diaryId) {
+      // diaryId가 없으면 새 글 모드이므로 아무것도 안 함
       return;
     }
 
@@ -55,7 +55,7 @@ export default function WriteScreen({ route, navigation }: Props) {
       setIsLoading(true);
       try {
         const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaryposts/${postId}`,
+          `${BASIC_URL}/api/diaries/${diaryId}`,
           { method: 'GET' }
         );
         if (!res.ok) {
@@ -68,19 +68,12 @@ export default function WriteScreen({ route, navigation }: Props) {
           throw new Error(errJson.message || '서버 에러');
         }
         const data = await res.json();
-        /**
-         * data 타입 예시 (PostData 인터페이스 형태):
-         * {
-         *   id: string;
-         *   date: '2025-06-01';
-         *   title: '기존 제목';
-         *   content: '기존 내용';
-         *   aiResponse: boolean;
-         * }
-         */
+
         // 1) date 문자열을 Date 객체로 변환
-        const [y, m, d] = data.date.split('-').map((v: string) => parseInt(v, 10));
-        setDate(new Date(y, m - 1, d));
+        if (data.date) {
+            const [y, m, d] = data.date.split('-').map((v: string) => parseInt(v, 10));
+            setDate(new Date(y, m - 1, d));
+        }
 
         // 2) 나머지 상태 채우기
         setTitle(data.title);
@@ -95,7 +88,7 @@ export default function WriteScreen({ route, navigation }: Props) {
     };
 
     loadExistingPost();
-  }, [postId, fetchWithAuth, userToken, navigation]);
+  }, [diaryId, fetchWithAuth, userToken, navigation]);
 
   /** ──────────────── DateTimePicker용 핸들러 ──────────────── */
   const onPressDate = () => {
@@ -138,56 +131,56 @@ export default function WriteScreen({ route, navigation }: Props) {
     }
 
     setIsLoading(true);
+
+    const postData = {
+      date: formatDateString(date),
+      title: title.trim(),
+      content: content.trim(),
+    };
+
     try {
-      // “수정 모드”일 때: PUT(또는 PATCH) 요청
-      if (postId) {
+      if (diaryId) {
+        // “수정 모드”일 때: PUT 요청
         const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaryposts/${postId}`,
+          `${BASIC_URL}/api/diaries/${diaryId}`,
           {
-            method: 'PUT', // 백엔드가 PATCH를 받으면 'PATCH'로 수정
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: title.trim(),
-              content: content.trim(),
-            }),
+            body: JSON.stringify(postData),
           }
         );
+
         if (!res.ok) {
           const errJson = await res.json();
-          Alert.alert('수정 실패', errJson.message || '서버 에러가 발생했습니다.');
-          return;
+          throw new Error(errJson.message || '서버 에러가 발생했습니다.');
         }
-        // 수정이 성공하면, 상세 보기나 AI 분석 화면으로 돌아가거나 원하는 화면으로 네비게이션
+
+        Alert.alert('성공', '일기가 수정되었습니다.');
         navigation.goBack();
-        return;
-      }
 
-      // “새 글 작성 모드”일 때: POST 요청
-      const response = await fetchWithAuth(
-        `${BASIC_URL}/api/diaries`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: formatDateString(date),
-            title: title.trim(),
-            content: content.trim(),
-          }),
+      } else {
+        // “새 글 작성 모드”일 때: POST 요청
+        const res = await fetchWithAuth(
+          `${BASIC_URL}/api/diaries`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+          }
+        );
+
+        if (!res.ok) {
+          const errJson = await res.json();
+          throw new Error(errJson.message || '서버 에러가 발생했습니다.');
         }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        Alert.alert('작성 실패', errorData.message || '서버 에러가 발생했습니다.');
-        return;
-      }
 
-      // 성공 시, 백엔드가 리턴한 postId를 얻어서 분석 화면(또는 상세 보기)으로 이동
-      const responseData = await response.json();
-      const newPostId = responseData.id;
-      navigation.navigate('Analyze', { diaryId: newPostId });
+        const newPost = await res.json();
+        Alert.alert('성공', '새 일기가 작성되었습니다.');
+        navigation.navigate('Analyze', { diaryId: newPost.id });
+      }
     } catch (err: any) {
       console.warn('글 작성/수정 중 오류:', err);
-      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+      Alert.alert('오류', err.message || '네트워크 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +258,7 @@ export default function WriteScreen({ route, navigation }: Props) {
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>
-            {postId ? '수정 완료' : '새 일기 작성하기'}
+            {diaryId ? '수정 완료' : '새 일기 작성하기'}
           </Text>
         </TouchableOpacity>
       </View>

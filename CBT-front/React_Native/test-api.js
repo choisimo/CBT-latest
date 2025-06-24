@@ -8,7 +8,7 @@ const simpleFetch = (url, options = {}) => {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = options.body || '';
-    
+
     const req = https.request({
       hostname: urlObj.hostname,
       port: urlObj.port || 443,
@@ -47,13 +47,13 @@ const simpleFetch = (url, options = {}) => {
         }
       });
     });
-    
+
     req.on('error', reject);
     req.setTimeout(5000, () => {
       req.destroy();
       reject(new Error('Request timeout'));
     });
-    
+
     if (postData) {
       req.write(postData);
     }
@@ -64,12 +64,12 @@ const simpleFetch = (url, options = {}) => {
 // Copy our safeApiCall logic for testing
 const checkServerHealth = async () => {
   try {
-    const response = await simpleFetch(`${BASIC_URL}/api/public/login`, {
+    const response = await simpleFetch(`${BASIC_URL}/api/public/check/loginId/IsDuplicate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'health_check', password: 'health_check' }),
+      body: JSON.stringify({ loginId: 'health_check_dummy' }),
     });
-    
+
     console.log('✅ Server health check passed - server is responding');
     return true;
   } catch (error) {
@@ -91,7 +91,7 @@ const safeApiCall = async (url, options = {}) => {
     const response = await simpleFetch(url, options);
     const contentType = response.headers.get('content-type');
     const isJson = contentType && contentType.indexOf('application/json') !== -1;
-    
+
     if (!isJson) {
       const responseText = await response.text();
       console.error('Non-JSON response received:', {
@@ -100,7 +100,7 @@ const safeApiCall = async (url, options = {}) => {
         contentType,
         responseText: responseText.substring(0, 500)
       });
-      
+
       return {
         success: false,
         error: '서버 응답 형식이 올바르지 않습니다. 서버 상태를 확인해주세요.'
@@ -108,7 +108,7 @@ const safeApiCall = async (url, options = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       return {
         success: false,
@@ -132,16 +132,16 @@ const safeApiCall = async (url, options = {}) => {
 // Test functions
 async function testSignup() {
   console.log('\n🧪 Testing Signup API...');
-  
+
   const result = await safeApiCall(
     `${BASIC_URL}/api/public/join`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        loginId: 'test_user_' + Date.now(), 
-        userPw: 'TestPassword123!', 
-        email: 'test' + Date.now() + '@example.com', 
+      body: JSON.stringify({
+        loginId: 'test_user_' + Date.now(),
+        userPw: 'TestPassword123!',
+        email: 'test' + Date.now() + '@example.com',
         nickname: 'TestUser_' + Date.now()
       }),
     }
@@ -152,7 +152,7 @@ async function testSignup() {
 
 async function testDuplicationCheck() {
   console.log('\n🧪 Testing Duplication Check API...');
-  
+
   const result = await safeApiCall(
     `${BASIC_URL}/api/public/check/loginId/IsDuplicate`,
     {
@@ -167,7 +167,7 @@ async function testDuplicationCheck() {
 
 async function testLogin() {
   console.log('\n🧪 Testing Login API...');
-  
+
   const result = await safeApiCall(
     `${BASIC_URL}/api/public/login`,
     {
@@ -183,7 +183,7 @@ async function testLogin() {
 // Run tests
 async function runTests() {
   console.log('🚀 Starting API tests with remote server...');
-  
+
   await testLogin();
   await testDuplicationCheck();
   // Don't actually test signup to avoid creating dummy accounts

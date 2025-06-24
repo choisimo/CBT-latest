@@ -25,8 +25,8 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/public/oauth2")
+@RequiredArgsConstructor
 public class Oauth2Controller {
 
     // 하핫.. 너는 서비스다...

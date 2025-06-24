@@ -45,7 +45,7 @@ interface DateData {
 }
 
 export default function MainScreen({ navigation }: Props) {
-  const { user, fetchWithAuth, isAuthLoading } = useContext(AuthContext);
+  const { user, fetchWithAuth, isAuthLoading, isBootstrapping } = useContext(AuthContext);
 
   // 검색어, 선택 날짜, 달력 토글 상태
   const [searchText, setSearchText] = useState('');
@@ -61,85 +61,81 @@ export default function MainScreen({ navigation }: Props) {
   const [totalCount, setTotalCount] = useState(0);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
 
-  /** 1) 달력에 표시할 날짜들(월별 조회) */
+  /** 1) 앱 로드/로그인 시 초기 데이터 로드 */
   useEffect(() => {
-    const loadDates = async () => {
-      if (!user) return;
+    // isAuthLoading: 로그인/아웃, 리프레시 등 인증 액션 로딩
+    // isBootstrapping: 앱 기동 시 토큰/사용자 조회 로딩
+    // 두 로딩이 모두 false이고, user 객체가 있을 때만 API를 호출
+    if (isAuthLoading || isBootstrapping || !user) {
+      return;
+    }
+
+    const loadInitialData = async () => {
+      // 1. 달력 날짜 조회
       try {
-        // 1. 오늘 기준 YYYY-MM 생성
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
-        const payload: Record<string, any> = {
-          "month":`${year}-${month}`
-        };
-        const qs = toQueryString(payload);
-        // 2. backend: GET /api/diaries - Auth-server의 일기 API 엔드포인트
-        const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaries?${qs}`
-        );
-        // 3. JSON 파싱
-        const calendar_json: DateData = await res.json() 
-        // 4. dates 배열 존재 여부 확인
-        if (!calendar_json.dates || !Array.isArray(calendar_json.dates)) {
-          console.warn('달력 조회 실패: dates 배열이 없습니다');
-          setAllDates([]);
+        const calendarQs = toQueryString({ month: `${year}-${month}` });
+        const calendarRes = await fetchWithAuth(`${BASIC_URL}/api/diaries${calendarQs}`);
+        const calendarData = await calendarRes.json();
+        if (calendarData && Array.isArray(calendarData.dates)) {
+          setAllDates(calendarData.dates);
         } else {
-          // 5. 정상 처리
-          setAllDates(calendar_json.dates);
+          console.warn('달력 조회 실패: dates 배열이 없습니다', calendarData);
+          setAllDates([]);
         }
       } catch (e: any) {
-        // 네트워크 오류 등 예외 시 console.warn 처리
         console.warn('달력 조회 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
         setAllDates([]);
       }
 
-      // 일기 목록 조회
+      // 2. 첫 페이지 일기 목록 조회
       try {
-        const payload: Record<string, any> = {
-          "page":0,
-          "size":10,
-          "sort":"createdAt,desc", 
-        };
-        const qs = toQueryString(payload);
-        const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
-        const dairy_json: DairyData = await res.json();
-        if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
-          console.warn('일기 조회 실패: diaries 배열이 없습니다');
+        const diaryQs = toQueryString({ page: 0, size: 10, sort: "createdAt,desc" });
+        const diaryRes = await fetchWithAuth(`${BASIC_URL}/api/diaries${diaryQs}`);
+        const pageData = await diaryRes.json();
+        if (pageData && Array.isArray(pageData.content)) {
+          setFilteredPosts(pageData.content);
+          setTotalCount(pageData.totalElements || 0);
+          setCurrentPage(0); // 페이지 상태 초기화
+        } else {
+          console.warn('초기 일기 조회 실패: content 배열이 없습니다', pageData);
           setFilteredPosts([]);
           setTotalCount(0);
-        } else {
-          setFilteredPosts(dairy_json.diaries);
-          setTotalCount(dairy_json.pageInfo?.totalElements || 0);
         }
       } catch (e: any) {
-        console.warn('일기 조회 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
+        console.warn('초기 일기 조회 중 오류:', e.message || '알 수 없는 오류가 발생했습니다.');
         setFilteredPosts([]);
         setTotalCount(0);
       }
     };
-    loadDates();
-  }, [user]);
+
+    loadInitialData();
+  }, [user, isAuthLoading, isBootstrapping, fetchWithAuth]);
 
   /** 2) 전체 조회 또는 검색어 조회 (page가 바뀔 때마다) */
   const loadAllOrSearch = async (page: number) => {
     if (!user) return;
     try {
       const payload: Record<string, any> = {
-        "q":searchText,
-        "page":page,
-        "size":10,
-        "sort":"createdAt,desc", 
+        "q": searchText,
+        "page": page,
+        "size": 10,
+        "sort": "createdAt,desc",
       };
       const qs = toQueryString(payload);
       const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
-      const dairy_json: DairyData = await res.json();
-      if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
-        Alert.alert('일기 조회 실패', '일기 데이터를 불러올 수 없습니다.');
-        return;
+      const pageData = await res.json();
+      if (pageData && Array.isArray(pageData.content)) {
+        setFilteredPosts(pageData.content);
+        setTotalCount(pageData.totalElements || 0);
+      } else {
+        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
+        console.error("Unexpected API response structure:", pageData);
+        setFilteredPosts([]);
+        setTotalCount(0);
       }
-      setFilteredPosts(dairy_json.diaries);
-      setTotalCount(dairy_json.pageInfo?.totalElements || 0);
     } catch (e: any) {
       Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
     }
@@ -151,19 +147,22 @@ export default function MainScreen({ navigation }: Props) {
     try {
       const payload: Record<string, any> = {
         date,
-        "page":page,
-        "size":10,
-        "sort":"createdAt,desc", 
+        "page": page,
+        "size": 10,
+        "sort": "createdAt,desc",
       };
       const qs = toQueryString(payload);
       const res = await fetchWithAuth(`${BASIC_URL}/api/diaries${qs}`)
-      const dairy_json: DairyData = await res.json();
-      if (!dairy_json.diaries || !Array.isArray(dairy_json.diaries)) {
-        Alert.alert('일기 조회 실패', '일기 데이터를 불러올 수 없습니다.');
-        return;
+      const pageData = await res.json();
+      if (pageData && Array.isArray(pageData.content)) {
+        setFilteredPosts(pageData.content);
+        setTotalCount(pageData.totalElements || 0);
+      } else {
+        Alert.alert('일기 조회 실패', '서버로부터 받은 데이터 형식이 올바르지 않습니다.');
+        console.error("Unexpected API response structure:", pageData);
+        setFilteredPosts([]);
+        setTotalCount(0);
       }
-      setFilteredPosts(dairy_json.diaries);
-      setTotalCount(dairy_json.pageInfo?.totalElements || 0);
     } catch (e: any) {
       Alert.alert('일기 조회 중 오류', e.message || '알 수 없는 오류가 발생했습니다.');
     }

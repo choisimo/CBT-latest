@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
@@ -34,6 +35,9 @@ public class Diary {
     // SQL: title VARCHAR(255) NULL -> nullable=true로 설정 (필수값 아님)
     @Column(name = "title", length = 255)
     private String title;
+
+    @Column(name = "date", nullable = false)
+    private LocalDate date;
 
     @Lob
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)

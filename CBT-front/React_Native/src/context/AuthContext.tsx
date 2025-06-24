@@ -47,6 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 공통 인증 요청 함수
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
     const token = userToken;
+    console.log(`[fetchWithAuth] Requesting URL: ${url}`);
+    console.log(`[fetchWithAuth] Current Token: ${token ? `...${token.slice(-10)}` : 'None'}`);
+
     const makeRequest = async (t: string) =>
       fetch(url, {
         ...options,
@@ -57,23 +60,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-    let res = token ? await makeRequest(token) : new Response(null, { status: 401 });
+    if (!token) {
+      console.error('[fetchWithAuth] No token available. Aborting.');
+      return new Response(JSON.stringify({ message: 'No authentication token available.' }), { status: 401 });
+    }
+
+    let res = await makeRequest(token);
+    console.log(`[fetchWithAuth] Initial response for ${url}: ${res.status}`);
+
     if (res.status === 401) {
+      console.warn('[fetchWithAuth] Received 401. Attempting to refresh token...');
       const refreshRes = await fetch(`${BASIC_URL}/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ expiredToken: token, provider: 'server' }),
       });
+      console.log(`[fetchWithAuth] Refresh endpoint response: ${refreshRes.status}`);
+
       if (refreshRes.ok) {
-        const { access_token } = await refreshRes.json();
-        await Keychain.setGenericPassword('authToken', access_token);
-        setUserToken(access_token);
-        res = await makeRequest(access_token);
+        const { access_token: newToken } = await refreshRes.json();
+        console.log('[fetchWithAuth] Token refresh successful. Retrying original request...');
+        await Keychain.setGenericPassword('authToken', newToken);
+        setUserToken(newToken);
+        res = await makeRequest(newToken);
+        console.log(`[fetchWithAuth] Retried request response for ${url}: ${res.status}`);
       } else {
+        console.error('[fetchWithAuth] Token refresh failed. Logging out.');
         await Keychain.resetGenericPassword();
         setUserToken(null);
         setUser(null);
-        return new Response(null, { status: 401 });
+        // Return the failed refresh response to indicate a hard failure
+        return refreshRes;
       }
     }
     return res;
@@ -170,31 +187,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 앱 시작 시 자동 로그인 부트스트랩
   useEffect(() => {
     const bootstrapAsync = async () => {
+      setIsBootstrapping(true);
+      let token: string | null = null;
+
       try {
         const credentials = await Keychain.getGenericPassword();
         if (credentials) {
-          setUserToken(credentials.password);
-          const res = await fetchWithAuth(`https://${BASIC_URL}/api/users/me`);
-          if (res.ok) {
-            const { user } = await res.json();
-            setUser(user);
-          }
+          token = credentials.password;
         }
       } catch (e) {
-        console.warn('앱 부트스트랩 중 오류:', e);
-      } finally {
+        console.error('Keychain access error during bootstrap:', e);
         setIsBootstrapping(false);
+        return;
       }
+
+      if (token) {
+        const res = await fetch(`${BASIC_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          setUserToken(token);
+          setUser(json.data?.user || null);
+        } else if (res.status === 401) {
+          const refreshRes = await fetch(`${BASIC_URL}/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expiredToken: token, provider: 'server' }),
+          });
+
+          if (refreshRes.ok) {
+            const { access_token: newToken } = await refreshRes.json();
+            await Keychain.setGenericPassword('authToken', newToken);
+            setUserToken(newToken);
+            const res2 = await fetch(`${BASIC_URL}/api/users/me`, {
+              headers: { Authorization: `Bearer ${newToken}` },
+            });
+            if (res2.ok) {
+              const json2 = await res2.json();
+              setUser(json2.data?.user || null);
+            } else {
+              await Keychain.resetGenericPassword();
+              setUserToken(null);
+              setUser(null);
+            }
+          } else {
+            await Keychain.resetGenericPassword();
+            setUserToken(null);
+            setUser(null);
+          }
+        }
+      }
+      setIsBootstrapping(false);
     };
+
     bootstrapAsync();
-  }, [fetchWithAuth]);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!userToken) return;
-    const res = await fetchWithAuth(`https://${BASIC_URL}/api/users/me`);
+    const res = await fetchWithAuth(`${BASIC_URL}/api/users/me`);
     if (res.ok) {
-      const { user } = await res.json();
-      setUser(user);
+      const json = await res.json();
+      setUser(json.data?.user || null);
     }
   }, [fetchWithAuth, userToken]);
 

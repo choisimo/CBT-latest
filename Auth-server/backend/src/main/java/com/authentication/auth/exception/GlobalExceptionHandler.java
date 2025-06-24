@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
             Map.of("details", ErrorType.MAX_FILE_SIZE_EXCEEDED.getMessage())
         );
         
-        return ResponseEntity.status(ErrorType.MAX_FILE_SIZE_EXCEEDED.getStatus()).body(response);
+        return ResponseEntity.status(ErrorType.MAX_FILE_SIZE_EXCEEDED.getHttpStatus()).body(response);
     }
 
     /**
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
             Map.of("details", "Validation failed", "errors", errorMessages)
         );
         
-        return ResponseEntity.status(ErrorType.INVALID_REQUEST_BODY.getStatus()).body(response);
+        return ResponseEntity.status(ErrorType.INVALID_REQUEST_BODY.getHttpStatus()).body(response);
     }
 
     /**

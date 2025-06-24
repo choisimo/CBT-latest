@@ -74,7 +74,7 @@ public class LoginEndpointIntegrationTest {
         userRepository.save(testUser);
 
         // Mocking PrincipalDetailService
-        when(principalDetailService.loadUserByUsername(userEmail))
+        when(principalDetailService.loadUserByUsername(testUser.getLoginId()))
                 .thenReturn(new PrincipalDetails(testUser)); // Uses the actual user from DB
 
         // For incorrect email, mock it to throw UsernameNotFoundException

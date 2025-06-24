@@ -2,7 +2,6 @@ package com.authentication.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +12,11 @@ import java.util.List;
  */
 @Entity
 @Table(name = "users", indexes = @Index(name = "idx_email", columnList = "email"))
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Slf4j
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

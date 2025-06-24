@@ -64,6 +64,8 @@ class Oauth2ServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @InjectMocks
+    @Spy
     private Oauth2Service oauth2Service;
 
     private User testUser;
@@ -72,17 +74,6 @@ class Oauth2ServiceTest {
 
     @BeforeEach
     void setUp() {
-        Oauth2Service realOauth2Service = new Oauth2Service(
-                oauthProperties,
-                userRepository,
-                redisService,
-                jwtUtility,
-                authProviderRepository,
-                userAuthenticationRepository,
-                restTemplate,
-                passwordEncoder
-        );
-        oauth2Service = spy(realOauth2Service);
 
         testUser = User.builder().id(1L).nickname("testuser").email("test@example.com").userRole("USER").isActive("ACTIVE").build();
         kakaoAuthProvider = AuthProvider.builder().id(1).providerName("KAKAO").build();

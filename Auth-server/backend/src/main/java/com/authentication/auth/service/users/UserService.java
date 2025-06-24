@@ -23,6 +23,7 @@ import java.util.Collections;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserService {
 
     private final UserRepository repository;
@@ -144,9 +145,15 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponseDto findByLoginId(String loginId) {
-        User user = repository.findByLoginId(loginId)
-                .orElseThrow(() -> new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + loginId));
+    public UserResponseDto findByLoginId(String username) {
+        log.info("Finding user for /api/users/me by username: {}", username);
+        User user = repository.findByLoginId(username)
+                .orElseGet(() -> repository.findByEmail(username)
+                        .orElseThrow(() -> {
+                            log.error("User not found by loginId or email: {}", username);
+                            return new CustomException(ErrorType.USER_NOT_FOUND, "사용자를 찾을 수 없습니다: " + username);
+                        }));
+        log.info("User found for /api/users/me: {}", user.getLoginId());
         return new UserResponseDto(user.getId(), user.getNickname(), user.getEmail(), user.getLoginId(), user.getIsPremium(), user.getUserRole());
     }
 

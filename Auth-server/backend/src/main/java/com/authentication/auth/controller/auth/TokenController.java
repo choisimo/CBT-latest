@@ -26,7 +26,7 @@ import java.io.IOException;
 @Slf4j
 @RestController
 @RequiredArgsConstructor // Using Lombok for constructor injection
-public class TokenController {
+public class TokenController implements TokenApi {
 
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager; // Injected AuthenticationManager

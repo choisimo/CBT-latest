@@ -1,4 +1,4 @@
-package com.authentication.auth.dto;
+package com.authentication.auth.dto.diary;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,4 +25,7 @@ public class DiaryRequestDto {
     
     @JsonProperty("userId")
     private String userId;
+
+    @JsonProperty("date")
+    private String date;
 } 

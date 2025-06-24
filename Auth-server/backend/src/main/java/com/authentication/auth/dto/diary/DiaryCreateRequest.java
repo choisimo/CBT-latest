@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class DiaryCreateRequest {
     private String title;
     private String content;
+    private String date;
 }
