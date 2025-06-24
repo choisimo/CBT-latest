@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service("diaryManagementService")
@@ -126,6 +127,54 @@ public class DiaryManagementService {
                 .orElseThrow(() -> new EntityNotFoundException("Diary not found"));
 
         return convertToResponseDto(diary);
+    }
+
+    /**
+     * 검색어로 일기 조회
+     */
+    @Transactional(readOnly = true)
+    public Page<DiaryResponseDto> searchDiaries(UserDetails userDetails, String searchQuery, Pageable pageable) {
+        User user = findUserByUsernameOrEmail(userDetails.getUsername());
+        
+        // 제목이나 내용에 검색어가 포함된 일기 조회
+        Page<Diary> diaries = diaryRepository.findByUserAndTitleContainingOrUserAndContentContaining(
+                user, searchQuery, user, searchQuery, pageable);
+        
+        return diaries.map(this::convertToResponseDto);
+    }
+
+    /**
+     * 특정 날짜의 일기 조회
+     */
+    @Transactional(readOnly = true)
+    public Page<DiaryResponseDto> findDiariesByDate(UserDetails userDetails, String dateString, Pageable pageable) {
+        User user = findUserByUsernameOrEmail(userDetails.getUsername());
+        LocalDate date = LocalDate.parse(dateString);
+        
+        Page<Diary> diaries = diaryRepository.findByUserAndDate(user, date, pageable);
+        return diaries.map(this::convertToResponseDto);
+    }
+
+    /**
+     * 월별 일기 작성 날짜 목록 조회 (달력 표시용)
+     */
+    @Transactional(readOnly = true)
+    public List<String> findDiaryDatesByMonth(UserDetails userDetails, String monthString) {
+        User user = findUserByUsernameOrEmail(userDetails.getUsername());
+        
+        // monthString format: "YYYY-MM"
+        String[] parts = monthString.split("-");
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+        
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        
+        return diaryRepository.findDistinctDatesByUserAndDateBetween(user, startDate, endDate)
+                .stream()
+                .map(LocalDate::toString)
+                .sorted()
+                .toList();
     }
 
     private User getCurrentUser() {

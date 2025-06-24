@@ -83,29 +83,29 @@ export default function ViewScreen({ route, navigation }: Props) {
   const handleAnalyze = async () => {
     if (!post) return;
 
+    // AI 분석 결과가 이미 있다면 바로 분석 화면으로 이동
+    if (post.aiResponse) {
+      navigation.navigate('Analyze', { diaryId: post.id });
+      return;
+    }
+
     try {
-      // 1) AI 분석 결과가 없다면(=aiResponse === false), 백엔드에 분석 요청
-      if (!post.aiResponse) {
-        // /api/diaries/{postId}/analysis 형식에 맞춰서 호출
-        const res = await fetchWithAuth(
-          `${BASIC_URL}/api/diaries/${post.id}/analysis`,
-          { method: 'POST' } // 만약 GET이 아니라 POST여야 한다면 POST로 바꿔주세요
-        );
+      // AI 분석 결과가 없다면 분석 요청 후 분석 화면으로 이동
+      const res = await fetchWithAuth(
+        `${BASIC_URL}/api/diaries/${post.id}/analysis`,
+        { method: 'POST' }
+      );
 
-        if (!res.ok) {
-          // 분석 요청 실패 시 에러 메시지 표시
-          const errJson = await res.json();
-          Alert.alert('분석 오류', errJson.message || 'AI 분석 요청에 실패했습니다.');
-          return;
-        }
-
-        // 백엔드에서 분석을 완료하고, 최종 결과물(aiResponse 등)을 업데이트해 주었다고 가정
-        // (필요하다면 이 시점에 `const updatedPost: PostData = await res.json()` 을 받아서
-        //  post 상태를 갱신해 주셔도 됩니다.)
+      if (!res.ok) {
+        // 분석 요청 실패 시 에러 메시지 표시
+        const errJson = await res.json();
+        Alert.alert('분석 오류', errJson.message || 'AI 분석 요청에 실패했습니다.');
+        return;
       }
 
-      // 2) AI 분석 결과가 이미 있거나, 방금 분석이 끝났다면 결과 화면으로 이동
+      // 분석 요청이 성공하면 분석 화면으로 이동 (분석 진행 상황은 AnalyzeScreen에서 처리)
       navigation.navigate('Analyze', { diaryId: post.id });
+      
     } catch (e: any) {
       console.warn('AI 분석 요청 중 오류:', e);
       Alert.alert('오류', 'AI 분석 중에 문제가 발생했습니다.');

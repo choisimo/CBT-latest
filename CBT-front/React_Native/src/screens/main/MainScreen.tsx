@@ -127,8 +127,7 @@ export default function MainScreen({ navigation }: Props) {
       const today = new Date();
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
-      const calendarQs = toQueryString({ month: `${year}-${month}` });
-      const calendarRes = await fetchWithAuth(`${BASIC_URL}/api/diaries${calendarQs}`);
+      const calendarRes = await fetchWithAuth(`${BASIC_URL}/api/diaries/dates?month=${year}-${month}`);
       const calendarData = await calendarRes.json();
       if (calendarData && Array.isArray(calendarData.dates)) {
         setAllDates(calendarData.dates);

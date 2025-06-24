@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -46,15 +47,51 @@ public class DiaryController {
     }
 
     /**
-     * 일기 목록 조회 (READ) - 페이징 처리
+     * 일기 목록 조회 (READ) - 페이징 처리 + 검색 + 날짜 필터
      */
     @GetMapping
     public ResponseEntity<Page<DiaryResponseDto>> getDiaries(
             @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(value = "q", required = false) String searchQuery,
+            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(value = "month", required = false) String month,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("사용자 {}의 일기 목록 조회 요청, 페이지 정보: {}", userDetails.getUsername(), pageable);
-        Page<DiaryResponseDto> diaries = diaryManagementService.findDiariesByUser(userDetails, pageable);
+        
+        log.info("사용자 {}의 일기 목록 조회 요청, 검색어: {}, 날짜: {}, 월: {}, 페이지 정보: {}", 
+                userDetails.getUsername(), searchQuery, date, month, pageable);
+                
+        Page<DiaryResponseDto> diaries;
+        
+        if (month != null && !month.trim().isEmpty()) {
+            // 월별 날짜 목록 조회 (달력 표시용)
+            List<String> dates = diaryManagementService.findDiaryDatesByMonth(userDetails, month);
+            // 임시로 빈 페이지 반환하고 dates 정보는 별도 응답으로 처리
+            return ResponseEntity.ok().header("X-Diary-Dates", String.join(",", dates))
+                    .body(Page.empty(pageable));
+        } else if (date != null && !date.trim().isEmpty()) {
+            // 특정 날짜의 일기 조회
+            diaries = diaryManagementService.findDiariesByDate(userDetails, date, pageable);
+        } else if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            // 검색어로 일기 조회
+            diaries = diaryManagementService.searchDiaries(userDetails, searchQuery, pageable);
+        } else {
+            // 전체 일기 조회
+            diaries = diaryManagementService.findDiariesByUser(userDetails, pageable);
+        }
+        
         return ResponseEntity.ok(diaries);
+    }
+
+    /**
+     * 월별 일기 작성 날짜 목록 조회 (달력 표시용)
+     */
+    @GetMapping("/dates")
+    public ResponseEntity<?> getDiaryDates(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(value = "month") String month) {
+        log.info("사용자 {}의 {}월 일기 날짜 목록 조회", userDetails.getUsername(), month);
+        List<String> dates = diaryManagementService.findDiaryDatesByMonth(userDetails, month);
+        return ResponseEntity.ok(Map.of("dates", dates));
     }
 
     /**

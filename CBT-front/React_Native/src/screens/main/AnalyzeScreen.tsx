@@ -39,13 +39,23 @@ export default function AnalyzeScreen({ route }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<string>('대기 중...');
 
-  // 폴백 폴링 함수 정의
+  // 폴백 폴링 함수 정의 (무한 폴링 방지)
   const startFallbackPolling = async () => {
     console.log('폴백 폴링 시작');
+    let pollCount = 0;
+    const maxPollAttempts = 30; // 최대 30번 시도 (1분)
 
     const pollForAnalysis = async () => {
+      if (pollCount >= maxPollAttempts) {
+        setError('분석 시간이 초과되었습니다. 다시 시도해주세요.');
+        setIsLoading(false);
+        return;
+      }
+
+      pollCount++;
+
       try {
-        const response = await fetchWithAuth(`/api/diaries/${diaryId}/analysis`, {
+        const response = await fetchWithAuth(`${BASIC_URL}/api/diaries/${diaryId}/analysis`, {
           method: 'GET',
         });
 
@@ -73,7 +83,34 @@ export default function AnalyzeScreen({ route }: Props) {
                 break;
             }
           } else {
-            // 아직 분석이 시작되지 않음
+            // 분석 결과가 없으면 분석 시작 시도
+            if (pollCount === 1) {
+              console.log('분석 시작 요청 중...');
+              const startResponse = await fetchWithAuth(`${BASIC_URL}/api/diaries/${diaryId}/analysis`, {
+                method: 'POST',
+              });
+              if (!startResponse.ok) {
+                setError('분석을 시작할 수 없습니다.');
+                setIsLoading(false);
+                return;
+              }
+            }
+            setTimeout(pollForAnalysis, 2000);
+          }
+        } else if (response.status === 404) {
+          // 분석 결과가 없으면 분석 시작
+          if (pollCount === 1) {
+            console.log('분석 시작 요청 중...');
+            const startResponse = await fetchWithAuth(`${BASIC_URL}/api/diaries/${diaryId}/analysis`, {
+              method: 'POST',
+            });
+            if (!startResponse.ok) {
+              setError('분석을 시작할 수 없습니다.');
+              setIsLoading(false);
+              return;
+            }
+            setTimeout(pollForAnalysis, 2000);
+          } else {
             setTimeout(pollForAnalysis, 2000);
           }
         } else {

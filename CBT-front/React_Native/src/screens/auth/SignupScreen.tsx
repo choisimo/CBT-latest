@@ -186,13 +186,14 @@ export default function SignupScreen({ navigation }: Props) {
     setEmail(text);
     setEmailAvailable(null);
     setIsEmailVerified(false);
+    setEmailCode(''); // 이메일 변경 시 인증 코드 초기화
     console.log('📧 Reset emailAvailable to null and emailVerified to false');
 
     if (text && !isValidEmailFormat(text)) {
       setEmailError('올바른 이메일 형식을 입력해주세요.');
       console.log('📧 Invalid email format');
     } else if (text.length > 0) {
-      setEmailError('');
+      setEmailError(''); // 형식이 올바르면 에러 메시지 제거
       console.log('📧 Valid email format, calling debouncedCheckEmail');
       debouncedCheckEmail(text);
     } else {
